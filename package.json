@@ -21,7 +21,7 @@
     "katex": "^0.18.4",
     "marked": "^18.0.9",
     "satori": "^0.29.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "shiki": "^4.4.3"
   },
   "devDependencies": {
