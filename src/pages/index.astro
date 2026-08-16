@@ -1,0 +1,89 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, about } from '../config.js';
+import { renderMarkdown, renderInline } from '../lib/markdown.js';
+import { safeQuery } from '../lib/convex.js';
+import { api } from '../../convex/_generated/api.js';
+import { formatDate, personSchema, websiteSchema } from '../lib/seo.js';
+
+const { html: intro } = await renderMarkdown(about.intro, { highlight: false });
+const recent = await safeQuery(api.posts.listPublished, { limit: 5 }, []);
+
+Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=604800');
+---
+
+<Base
+  fullTitle={`${site.name} — ${site.tagline}`}
+  title={site.name}
+  description={site.description}
+  canonical="/"
+  schemas={[personSchema(), websiteSchema()]}
+>
+  <div class="prose intro" set:html={intro} />
+
+  {about.sections.map((section) => (
+    <section class="block">
+      <h2>{section.heading}:</h2>
+      <ul class="dash-list">
+        {section.items.map((item) => <li set:html={renderInline(item)} />)}
+      </ul>
+    </section>
+  ))}
+
+  {recent.length > 0 && (
+    <section class="block">
+      <h2>Latest from the journal:</h2>
+      <ul class="dash-list">
+        {recent.map((post) => (
+          <li>
+            <a href={`/blog/${post.slug}`}>{post.title}</a>
+            <span class="dim mono meta"> {formatDate(post.publishedAt, { style: 'short' })}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="more"><a href="/blog">All posts →</a></p>
+    </section>
+  )}
+
+  <p class="signoff">
+    {about.signoff}
+    {about.avatar && <img src={about.avatar} alt="" width="28" height="28" class="avatar" />}
+  </p>
+</Base>
+
+<style>
+  .intro {
+    margin-bottom: 2rem;
+  }
+
+  .block {
+    margin-block: 2rem;
+  }
+
+  .block h2 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+    margin-bottom: 0.9rem;
+  }
+
+  .meta {
+    white-space: nowrap;
+  }
+
+  .more {
+    margin-top: 0.9rem;
+  }
+
+  .signoff {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 3.5rem;
+  }
+
+  .avatar {
+    border-radius: 50%;
+    display: block;
+  }
+</style>

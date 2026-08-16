@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import Editor from '../../components/Editor.astro';
+import PinGate from '../../components/PinGate.astro';
+import { isAuthed } from '../../lib/auth.js';
+import { isConvexConfigured } from '../../lib/convex.js';
+
+const authed = isAuthed(Astro.cookies);
+
+// Never cache the editor, at any layer.
+Astro.response.headers.set('cache-control', 'private, no-store, max-age=0');
+Astro.response.headers.set('x-robots-tag', 'noindex, nofollow');
+---
+
+<Base title="Write" description="Editor" noindex bare={authed}>
+  {authed ? <Editor convexReady={isConvexConfigured} /> : <PinGate />}
+</Base>

@@ -1,0 +1,48 @@
+---
+import '../styles/global.css';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import { site } from '../config.js';
+
+const { bare = false, ...head } = Astro.props;
+---
+
+<!doctype html>
+<html lang={site.lang}>
+  <head>
+    <BaseHead {...head} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    {bare ? (
+      <slot />
+    ) : (
+      <div class="wrap">
+        <Header />
+        <main id="main">
+          <slot />
+        </main>
+      </div>
+    )}
+
+    <script>
+      // Copy buttons on rendered code blocks. Delegated so it costs one
+      // listener no matter how many blocks a post has.
+      document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-copy]');
+        if (!button) return;
+        const code = button.closest('.code-block')?.querySelector('code');
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code.innerText);
+          const previous = button.textContent;
+          button.textContent = 'copied';
+          setTimeout(() => (button.textContent = previous), 1400);
+        } catch {
+          button.textContent = 'failed';
+        }
+      });
+    </script>
+  </body>
+</html>

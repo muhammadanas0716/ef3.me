@@ -1,0 +1,60 @@
+---
+import { site, nav } from '../config.js';
+
+const path = Astro.url.pathname;
+const onHome = path === '/';
+---
+
+<header class="site-header">
+  {onHome ? (
+    <span class="site-name">{site.name}</span>
+  ) : (
+    <a class="site-name" href="/">{site.name}</a>
+  )}
+
+  <nav aria-label="Primary">
+    {nav.map((item) => (
+      <a
+        class="mono nav-link"
+        href={item.href}
+        aria-current={path === item.href || path.startsWith(`${item.href}/`) ? 'page' : undefined}
+        {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer me' } : {})}
+      >
+        {item.label}
+      </a>
+    ))}
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 3.25rem;
+  }
+
+  .site-name {
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  a.site-name:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+
+  nav {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .nav-link[aria-current='page'] {
+    text-decoration-thickness: 2px;
+  }
+</style>

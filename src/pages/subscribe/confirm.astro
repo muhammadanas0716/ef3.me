@@ -1,0 +1,55 @@
+---
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config.js';
+import { convex, isConvexConfigured } from '../../lib/convex.js';
+import { api } from '../../../convex/_generated/api.js';
+
+const token = Astro.url.searchParams.get('token');
+
+let confirmed = false;
+if (token && isConvexConfigured) {
+  try {
+    const result = await convex().mutation(api.subscribers.confirm, { token });
+    confirmed = Boolean(result?.ok);
+  } catch (error) {
+    console.error('[subscribe] confirm failed:', error?.message ?? error);
+  }
+}
+
+// Confirmation links are one-per-person and must never be cached or indexed.
+Astro.response.headers.set('cache-control', 'private, no-store');
+---
+
+<Base title={confirmed ? 'Subscribed' : 'Link expired'} description="Newsletter confirmation" noindex>
+  {confirmed ? (
+    <>
+      <h1>You're on the list.</h1>
+      <p class="body">
+        New posts will land in your inbox — the topic, a line about it, and a link. Nothing else.
+        Every email has a one-click unsubscribe.
+      </p>
+      <p class="body"><a href="/blog">Read the {site.blogTitle.toLowerCase()} →</a></p>
+    </>
+  ) : (
+    <>
+      <h1>That link didn't work.</h1>
+      <p class="body">
+        It may have already been used, or replaced by a newer one.
+        <a href="/blog">Try subscribing again</a> and use the most recent email.
+      </p>
+    </>
+  )}
+</Base>
+
+<style>
+  h1 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+  }
+
+  .body {
+    margin-top: 0.9rem;
+    max-width: 30rem;
+  }
+</style>

@@ -1,0 +1,52 @@
+---
+import Base from '../layouts/Base.astro';
+import { convex, isConvexConfigured } from '../lib/convex.js';
+import { api } from '../../convex/_generated/api.js';
+
+const token = Astro.url.searchParams.get('token');
+
+let done = false;
+if (token && isConvexConfigured) {
+  try {
+    const result = await convex().mutation(api.subscribers.unsubscribe, { token });
+    done = Boolean(result?.ok);
+  } catch (error) {
+    console.error('[unsubscribe] failed:', error?.message ?? error);
+  }
+}
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+---
+
+<Base title="Unsubscribed" description="Newsletter unsubscribe" noindex>
+  {done ? (
+    <>
+      <h1>Done — you're off the list.</h1>
+      <p class="body">
+        No more emails. The <a href="/blog">journal</a> stays open, and there's always
+        <a href="/rss.xml">the feed</a> if you'd rather read it that way.
+      </p>
+    </>
+  ) : (
+    <>
+      <h1>That link didn't work.</h1>
+      <p class="body">
+        It may already have been used. If you're still getting emails, reply to any of them and
+        I'll take you off by hand.
+      </p>
+    </>
+  )}
+</Base>
+
+<style>
+  h1 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+  }
+
+  .body {
+    margin-top: 0.9rem;
+    max-width: 30rem;
+  }
+</style>

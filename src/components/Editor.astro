@@ -1,0 +1,1288 @@
+---
+const { convexReady = true } = Astro.props;
+
+/** Toolbar is data-driven so the markup below stays readable. */
+const tools = [
+  { action: 'prefix', arg: '## ', label: 'H2', title: 'Heading 2' },
+  { action: 'prefix', arg: '### ', label: 'H3', title: 'Heading 3' },
+  { sep: true },
+  { action: 'wrap', arg: '**', label: 'B', title: 'Bold — ⌘B', bold: true },
+  { action: 'wrap', arg: '*', label: 'I', title: 'Italic — ⌘I', italic: true },
+  { action: 'wrap', arg: '~~', label: 'S', title: 'Strikethrough', strike: true },
+  { action: 'wrap', arg: '`', label: '‹›', title: 'Inline code — ⌘E' },
+  { sep: true },
+  { action: 'link', label: 'link', title: 'Link — ⌘K' },
+  { action: 'image', label: 'image', title: 'Upload an image' },
+  { action: 'embed', label: 'embed', title: 'Embed a video or link card' },
+  { sep: true },
+  { action: 'prefix', arg: '- ', label: 'list', title: 'Bulleted list' },
+  { action: 'prefix', arg: '1. ', label: '1.', title: 'Numbered list' },
+  { action: 'prefix', arg: '- [ ] ', label: 'todo', title: 'Task list' },
+  { action: 'prefix', arg: '> ', label: 'quote', title: 'Blockquote' },
+  { sep: true },
+  { action: 'codeblock', label: 'code', title: 'Code block' },
+  { action: 'mathblock', label: 'math', title: 'Display math' },
+  { action: 'wrap', arg: '$', label: '$x$', title: 'Inline math' },
+  { action: 'callout', label: 'note', title: 'Callout' },
+  { action: 'table', label: 'table', title: 'Table' },
+  { action: 'footnote', label: 'fn', title: 'Footnote' },
+  { action: 'rule', label: '—', title: 'Horizontal rule' },
+];
+---
+
+<div class="editor" id="editor" data-convex-ready={String(convexReady)}>
+  {!convexReady && (
+    <p class="warning mono">
+      CONVEX_URL is not set — saving will fail. Run <code>pnpm convex:dev</code> once, then restart.
+    </p>
+  )}
+
+  <header class="bar">
+    <div class="bar-group">
+      <button type="button" class="ghost" data-panel="posts" title="All posts">posts</button>
+      <a class="ghost" href="/blog" target="_blank" rel="noopener">site ↗</a>
+    </div>
+
+    <input id="f-title" class="title-input" placeholder="Untitled" aria-label="Post title" />
+
+    <div class="bar-group right">
+      <span id="save-state" class="mono dim" aria-live="polite"></span>
+      <button type="button" class="ghost" data-panel="meta" title="Post details">details</button>
+      <button type="button" class="ghost" id="btn-new" title="New post">new</button>
+      <button type="button" class="solid" id="btn-save" title="Save — ⌘S">save</button>
+      <button type="button" class="ghost" id="btn-lock" title="Lock the editor">lock</button>
+    </div>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    {tools.map((tool) =>
+      tool.sep ? (
+        <span class="sep" aria-hidden="true"></span>
+      ) : (
+        <button
+          type="button"
+          class:list={['tool', { bold: tool.bold, italic: tool.italic, strike: tool.strike }]}
+          data-action={tool.action}
+          data-arg={tool.arg}
+          title={tool.title}
+          aria-label={tool.title}
+        >
+          {tool.label}
+        </button>
+      ),
+    )}
+
+    <span class="grow"></span>
+
+    <div class="views" role="group" aria-label="Layout">
+      <button type="button" class="tool" data-view="write" title="Editor only">write</button>
+      <button type="button" class="tool is-on" data-view="split" title="Split view">split</button>
+      <button type="button" class="tool" data-view="preview" title="Preview only">read</button>
+    </div>
+  </div>
+
+  <div class="panes" id="panes" data-view="split">
+    <div class="pane pane-source">
+      <textarea
+        id="source"
+        spellcheck="true"
+        placeholder="Write in markdown. Drag an image in to upload it."
+        aria-label="Markdown source"></textarea>
+      <div class="dropzone" id="dropzone" hidden><span class="mono">drop to upload</span></div>
+    </div>
+    <div class="pane pane-preview">
+      <article class="prose" id="preview" aria-live="off"></article>
+    </div>
+  </div>
+
+  <footer class="status mono">
+    <span id="counts" class="dim">0 words</span>
+    <span class="dim" id="slug-view"></span>
+    <span class="grow"></span>
+    <span id="toast" role="status" aria-live="polite"></span>
+  </footer>
+
+  <!-- panels -->
+  <div class="scrim" id="scrim" hidden></div>
+
+  <aside class="panel" id="panel-posts" hidden aria-label="All posts">
+    <header class="panel-head">
+      <h2 class="mono">posts</h2>
+      <button type="button" class="ghost" data-close>close</button>
+    </header>
+    <div class="panel-body" id="posts-list"><p class="dim mono">Loading…</p></div>
+  </aside>
+
+  <aside class="panel" id="panel-meta" hidden aria-label="Post details">
+    <header class="panel-head">
+      <h2 class="mono">details</h2>
+      <button type="button" class="ghost" data-close>close</button>
+    </header>
+    <div class="panel-body form">
+      <label>
+        <span class="mono dim">status</span>
+        <select id="f-status">
+          <option value="draft">draft</option>
+          <option value="published">published</option>
+        </select>
+      </label>
+
+      <label>
+        <span class="mono dim">slug</span>
+        <input id="f-slug" placeholder="auto from title" />
+      </label>
+
+      <label>
+        <span class="mono dim">publish date</span>
+        <input id="f-publishedAt" type="datetime-local" />
+      </label>
+
+      <label>
+        <span class="mono dim">excerpt <em>· used as the meta description</em></span>
+        <textarea id="f-excerpt" rows="3" maxlength="320" placeholder="auto from the first lines"></textarea>
+      </label>
+
+      <label>
+        <span class="mono dim">tags <em>· comma separated</em></span>
+        <input id="f-tags" placeholder="deep-learning, optimisation" />
+      </label>
+
+      <label>
+        <span class="mono dim">cover image url</span>
+        <div class="row">
+          <input id="f-coverImage" placeholder="https://…" />
+          <button type="button" class="ghost" id="btn-cover">upload</button>
+        </div>
+      </label>
+
+      <label>
+        <span class="mono dim">cover alt text</span>
+        <input id="f-coverAlt" placeholder="Describe the image" />
+      </label>
+
+      <label>
+        <span class="mono dim">series</span>
+        <input id="f-series" placeholder="optional" />
+      </label>
+
+      <label>
+        <span class="mono dim">canonical url <em>· if published elsewhere first</em></span>
+        <input id="f-canonicalUrl" placeholder="https://…" />
+      </label>
+
+      <div class="panel-actions">
+        <a class="ghost" id="btn-view" href="#" target="_blank" rel="noopener">view post ↗</a>
+        <button type="button" class="danger" id="btn-delete">delete post</button>
+      </div>
+    </div>
+  </aside>
+
+  <input type="file" id="file-input" accept="image/*" multiple hidden />
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const source = $('source');
+  const preview = $('preview');
+  const panes = $('panes');
+  const saveState = $('save-state');
+  const toast = $('toast');
+
+  const FIELDS = [
+    'title',
+    'slug',
+    'excerpt',
+    'tags',
+    'status',
+    'coverImage',
+    'coverAlt',
+    'series',
+    'canonicalUrl',
+    'publishedAt',
+  ];
+
+  const state = {
+    id: null,
+    dirty: false,
+    saving: false,
+    coverTarget: false,
+  };
+
+  /* ------------------------------------------------------------ utilities */
+
+  function say(message, tone = '') {
+    toast.textContent = message;
+    toast.className = tone;
+    if (message) setTimeout(() => { if (toast.textContent === message) toast.textContent = ''; }, 3500);
+  }
+
+  function debounce(fn, ms) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  function slugify(value) {
+    return String(value)
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 96);
+  }
+
+  function toLocalInput(ms) {
+    if (!ms) return '';
+    const date = new Date(ms - new Date(ms).getTimezoneOffset() * 60000);
+    return date.toISOString().slice(0, 16);
+  }
+
+  async function apiFetch(url, options = {}) {
+    const response = await fetch(url, {
+      headers: { 'content-type': 'application/json' },
+      ...options,
+    });
+    if (response.status === 401) {
+      say('Session expired — reloading.', 'bad');
+      setTimeout(() => window.location.reload(), 900);
+      throw new Error('unauthorised');
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
+    return data;
+  }
+
+  /* --------------------------------------------------------------- fields */
+
+  function readForm() {
+    const values = {};
+    for (const name of FIELDS) values[name] = $(`f-${name}`).value.trim();
+    return {
+      ...values,
+      slug: values.slug || slugify(values.title),
+      content: source.value,
+      publishedAt: values.publishedAt ? new Date(values.publishedAt).getTime() : undefined,
+    };
+  }
+
+  function writeForm(post) {
+    $('f-title').value = post?.title ?? '';
+    $('f-slug').value = post?.slug ?? '';
+    $('f-excerpt').value = post?.excerpt ?? '';
+    $('f-tags').value = (post?.tags ?? []).join(', ');
+    $('f-status').value = post?.status ?? 'draft';
+    $('f-coverImage').value = post?.coverImage ?? '';
+    $('f-coverAlt').value = post?.coverAlt ?? '';
+    $('f-series').value = post?.series ?? '';
+    $('f-canonicalUrl').value = post?.canonicalUrl ?? '';
+    $('f-publishedAt').value = toLocalInput(post?.publishedAt);
+    source.value = post?.content ?? '';
+    state.id = post?.id ?? null;
+    // A freshly loaded post owns its slug again.
+    slugTouched = Boolean(post);
+    markClean();
+    refresh();
+  }
+
+  function markDirty() {
+    state.dirty = true;
+    saveState.textContent = 'unsaved';
+    saveState.className = 'mono warn';
+    saveDraft();
+  }
+
+  function markClean() {
+    state.dirty = false;
+    saveState.textContent = state.id ? 'saved' : 'new';
+    saveState.className = 'mono dim';
+  }
+
+  /* ------------------------------------------------------- local recovery */
+
+  const draftKey = () => `el:draft:${state.id ?? 'new'}`;
+
+  const saveDraft = debounce(() => {
+    try {
+      localStorage.setItem(draftKey(), JSON.stringify({ ...readForm(), at: Date.now() }));
+    } catch {
+      /* storage full or blocked — the server save is the real one */
+    }
+  }, 600);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(draftKey());
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function restoreDraft(serverUpdatedAt) {
+    let draft;
+    try {
+      draft = JSON.parse(localStorage.getItem(draftKey()) ?? 'null');
+    } catch {
+      return false;
+    }
+    // An empty draft is not worth interrupting for.
+    if (!draft?.at || !(draft.content?.trim() || draft.title?.trim())) return false;
+    // Only offer it when it is genuinely newer than what the server holds.
+    if (serverUpdatedAt && draft.at <= serverUpdatedAt + 1000) return false;
+    if (!confirm('A newer unsaved local draft exists. Restore it?')) {
+      clearDraft();
+      return false;
+    }
+    writeForm({ ...draft, tags: String(draft.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean) });
+    markDirty();
+    return true;
+  }
+
+  /* -------------------------------------------------------------- preview */
+
+  let previewSeq = 0;
+
+  const renderPreview = debounce(async () => {
+    const seq = ++previewSeq;
+    try {
+      const data = await apiFetch('/api/render', {
+        method: 'POST',
+        body: JSON.stringify({ markdown: source.value }),
+      });
+      if (seq !== previewSeq) return; // a newer render already landed
+      preview.innerHTML = data.html;
+      $('counts').textContent = `${data.wordCount.toLocaleString()} words · ${data.readingMinutes} min`;
+    } catch (error) {
+      if (error.message !== 'unauthorised') preview.innerHTML = `<p class="dim">Preview unavailable.</p>`;
+    }
+  }, 350);
+
+  function refresh() {
+    const slug = $('f-slug').value.trim() || slugify($('f-title').value);
+    $('slug-view').textContent = slug ? `/blog/${slug}` : '';
+    $('btn-view').href = slug ? `/blog/${slug}` : '#';
+    renderPreview();
+  }
+
+  /* ----------------------------------------------------------------- save */
+
+  async function save({ silent = false } = {}) {
+    if (state.saving) return;
+    const body = readForm();
+    if (!body.title) {
+      say('A title is required.', 'bad');
+      $('f-title').focus();
+      return;
+    }
+
+    state.saving = true;
+    saveState.textContent = 'saving…';
+    saveState.className = 'mono dim';
+
+    try {
+      const data = state.id
+        ? await apiFetch(`/api/posts/${state.id}`, { method: 'PUT', body: JSON.stringify(body) })
+        : await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify(body) });
+
+      state.id = data.id;
+      // The server owns derived fields — mirror them back into the form.
+      $('f-slug').value = data.post.slug;
+      $('f-excerpt').value = data.post.excerpt;
+      clearDraft();
+      markClean();
+      refresh();
+
+      if (!silent) {
+        // Report the newsletter honestly — it only fires on a first publish.
+        const n = data.notified;
+        const mailed = n?.sent ? ` Emailed ${n.sent} subscriber${n.sent === 1 ? '' : 's'}.` : '';
+        const failed = n?.failed ? ` ${n.failed} failed.` : '';
+        say(
+          (body.status === 'published' ? 'Published.' : 'Saved as draft.') + mailed + failed,
+          failed ? 'warn' : 'good',
+        );
+      }
+    } catch (error) {
+      if (error.message !== 'unauthorised') {
+        say(error.message, 'bad');
+        saveState.textContent = 'unsaved';
+        saveState.className = 'mono warn';
+      }
+    } finally {
+      state.saving = false;
+    }
+  }
+
+  // Quiet background save so a crash never costs more than 25 seconds of work.
+  setInterval(() => {
+    if (state.dirty && state.id && !state.saving) save({ silent: true });
+  }, 25000);
+
+  /* ------------------------------------------------------ textarea editing */
+
+  function selection() {
+    return { start: source.selectionStart, end: source.selectionEnd, value: source.value };
+  }
+
+  function replace(start, end, text, selectStart = null, selectEnd = null) {
+    source.focus();
+    source.setRangeText(text, start, end, 'end');
+    if (selectStart !== null) source.setSelectionRange(selectStart, selectEnd ?? selectStart);
+    source.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** Toggles `marker` around the selection, removing it when already present. */
+  function wrap(marker) {
+    const { start, end, value } = selection();
+    const selected = value.slice(start, end);
+    const before = value.slice(start - marker.length, start);
+    const after = value.slice(end, end + marker.length);
+
+    if (before === marker && after === marker) {
+      replace(start - marker.length, end + marker.length, selected, start - marker.length, end - marker.length);
+      return;
+    }
+    if (selected.startsWith(marker) && selected.endsWith(marker) && selected.length > marker.length * 2) {
+      const inner = selected.slice(marker.length, -marker.length);
+      replace(start, end, inner, start, start + inner.length);
+      return;
+    }
+    replace(start, end, marker + selected + marker, start + marker.length, end + marker.length);
+  }
+
+  /** Adds (or removes) a line prefix across every selected line. */
+  function prefixLines(prefix) {
+    const { start, end, value } = selection();
+    const from = value.lastIndexOf('\n', start - 1) + 1;
+    const to = value.indexOf('\n', end) === -1 ? value.length : value.indexOf('\n', end);
+    const block = value.slice(from, to);
+    const lines = block.split('\n');
+    const ordered = /^\d+\.\s/.test(prefix);
+    const pattern = ordered ? /^\d+\.\s+/ : new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+    const allPrefixed = lines.every((line) => pattern.test(line) || !line.trim());
+
+    const next = lines
+      .map((line, index) => {
+        if (!line.trim()) return line;
+        if (allPrefixed) return line.replace(pattern, '');
+        return (ordered ? `${index + 1}. ` : prefix) + line.replace(pattern, '');
+      })
+      .join('\n');
+
+    replace(from, to, next, from, from + next.length);
+  }
+
+  /** Drops a block at the cursor, keeping blank lines around it tidy. */
+  function insertBlock(text, cursorOffset = null) {
+    const { start, end, value } = selection();
+    const needsLeading = start > 0 && !value.slice(0, start).endsWith('\n\n');
+    const lead = start === 0 ? '' : needsLeading ? (value.slice(0, start).endsWith('\n') ? '\n' : '\n\n') : '';
+    const body = lead + text;
+    const position = start + body.length;
+    replace(start, end, body, cursorOffset === null ? position : start + lead.length + cursorOffset);
+  }
+
+  const ACTIONS = {
+    wrap: (arg) => wrap(arg),
+    prefix: (arg) => prefixLines(arg),
+    codeblock: () => {
+      const { start, end, value } = selection();
+      // Any selection becomes the body of the fence; the cursor lands on the
+      // language so it can be typed over straight away.
+      insertBlock('```python\n' + value.slice(start, end) + '\n```\n', 3);
+    },
+    mathblock: () => insertBlock('$$\n\n$$\n', 3),
+    callout: () => insertBlock('> [!NOTE]\n> ', 11),
+    table: () =>
+      insertBlock('| column | column |\n| --- | --- |\n| value | value |\n', 2),
+    rule: () => insertBlock('---\n'),
+    footnote: () => {
+      // Reference at the cursor, definition appended at the bottom. Both go
+      // through setRangeText so a single undo doesn't leave one behind.
+      const id = `fn${Date.now().toString(36).slice(-4)}`;
+      const { start } = selection();
+      replace(start, start, `[^${id}]`);
+      const end = source.value.length;
+      const lead = source.value.endsWith('\n') ? '\n' : '\n\n';
+      replace(end, end, `${lead}[^${id}]: `);
+      source.setSelectionRange(source.value.length, source.value.length);
+    },
+    link: () => {
+      const { start, end, value } = selection();
+      const selected = value.slice(start, end);
+      const looksLikeUrl = /^https?:\/\/\S+$/.test(selected);
+      if (looksLikeUrl) {
+        replace(start, end, `[](${selected})`, start + 1);
+      } else {
+        replace(start, end, `[${selected}](url)`, start + selected.length + 3, start + selected.length + 6);
+      }
+    },
+    image: () => {
+      state.coverTarget = false;
+      $('file-input').click();
+    },
+    embed: () => {
+      // A URL alone on its own line is what the renderer turns into an embed.
+      const url = prompt('Paste a URL to embed (YouTube, Vimeo, Loom, Spotify, CodePen — anything else becomes a link card):');
+      if (url?.trim()) insertBlock(`${url.trim()}\n`);
+    },
+  };
+
+  document.querySelectorAll('.tool[data-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      ACTIONS[button.dataset.action]?.(button.dataset.arg);
+    });
+  });
+
+  /* ------------------------------------------------------------- keyboard */
+
+  const LIST_ITEM = /^(\s*)(?:([-*+])\s+(\[[ xX]\]\s+)?|(\d+)\.\s+|(>)\s?)/;
+
+  source.addEventListener('keydown', (event) => {
+    const mod = event.metaKey || event.ctrlKey;
+
+    if (mod && !event.altKey) {
+      const key = event.key.toLowerCase();
+      const shortcuts = {
+        b: () => wrap('**'),
+        i: () => wrap('*'),
+        e: () => wrap('`'),
+        k: () => ACTIONS.link(),
+      };
+      if (key === 's') {
+        event.preventDefault();
+        save();
+        return;
+      }
+      if (shortcuts[key] && !event.shiftKey) {
+        event.preventDefault();
+        shortcuts[key]();
+        return;
+      }
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      const { start, end, value } = selection();
+      const multiline = value.slice(start, end).includes('\n');
+      if (multiline || event.shiftKey) {
+        const from = value.lastIndexOf('\n', start - 1) + 1;
+        const to = value.indexOf('\n', end) === -1 ? value.length : value.indexOf('\n', end);
+        const lines = value.slice(from, to).split('\n');
+        const next = lines
+          .map((line) => (event.shiftKey ? line.replace(/^ {1,2}/, '') : `  ${line}`))
+          .join('\n');
+        replace(from, to, next, from, from + next.length);
+      } else {
+        replace(start, end, '  ');
+      }
+      return;
+    }
+
+    // Continue lists, task lists and quotes; a second Enter ends the block.
+    if (event.key === 'Enter' && !event.shiftKey && !mod) {
+      const { start, value } = selection();
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const line = value.slice(lineStart, start);
+      const match = LIST_ITEM.exec(line);
+      if (!match) return;
+
+      const isEmpty = line.replace(LIST_ITEM, '').trim() === '';
+      event.preventDefault();
+      if (isEmpty) {
+        replace(lineStart, start, '');
+        return;
+      }
+      const [, indent, bullet, task, number, quote] = match;
+      let marker;
+      if (bullet) marker = `${bullet} ${task ? '[ ] ' : ''}`;
+      else if (number) marker = `${Number(number) + 1}. `;
+      else marker = `${quote} `;
+      replace(start, start, `\n${indent}${marker}`);
+    }
+  });
+
+  /* --------------------------------------------------------------- upload */
+
+  async function upload(file) {
+    if (!file.type.startsWith('image/')) {
+      say('Images only.', 'bad');
+      return null;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      say('That image is over 20 MB.', 'bad');
+      return null;
+    }
+
+    say(`Uploading ${file.name}…`);
+    try {
+      const { uploadUrl } = await apiFetch('/api/media', {
+        method: 'POST',
+        body: JSON.stringify({ step: 'url' }),
+      });
+
+      const upload = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'content-type': file.type },
+        body: file,
+      });
+      if (!upload.ok) throw new Error('Upload rejected by storage.');
+      const { storageId } = await upload.json();
+
+      const saved = await apiFetch('/api/media', {
+        method: 'POST',
+        body: JSON.stringify({
+          step: 'save',
+          storageId,
+          name: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+
+      say('Uploaded.', 'good');
+      return saved.url;
+    } catch (error) {
+      if (error.message !== 'unauthorised') say(error.message, 'bad');
+      return null;
+    }
+  }
+
+  async function uploadInto(files) {
+    for (const file of files) {
+      const url = await upload(file);
+      if (!url) continue;
+      if (state.coverTarget) {
+        $('f-coverImage').value = url;
+        state.coverTarget = false;
+        markDirty();
+      } else {
+        const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+        insertBlock(`![${alt}](${url})\n`);
+      }
+    }
+  }
+
+  $('file-input').addEventListener('change', (event) => {
+    uploadInto([...event.target.files]);
+    event.target.value = '';
+  });
+
+  $('btn-cover').addEventListener('click', () => {
+    state.coverTarget = true;
+    $('file-input').click();
+  });
+
+  source.addEventListener('paste', (event) => {
+    const files = [...(event.clipboardData?.files ?? [])];
+    if (files.length) {
+      event.preventDefault();
+      uploadInto(files);
+      return;
+    }
+    // Pasting a URL over selected text turns it into a link.
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    const { start, end, value } = selection();
+    if (start !== end && /^https?:\/\/\S+$/.test(text.trim())) {
+      event.preventDefault();
+      replace(start, end, `[${value.slice(start, end)}](${text.trim()})`);
+    }
+  });
+
+  const dropzone = $('dropzone');
+  let dragDepth = 0;
+
+  source.parentElement.addEventListener('dragenter', (event) => {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    dragDepth += 1;
+    dropzone.hidden = false;
+  });
+  source.parentElement.addEventListener('dragover', (event) => event.preventDefault());
+  source.parentElement.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropzone.hidden = true;
+  });
+  source.parentElement.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dragDepth = 0;
+    dropzone.hidden = true;
+    uploadInto([...(event.dataTransfer?.files ?? [])]);
+  });
+
+  /* ---------------------------------------------------------------- panels */
+
+  function openPanel(name) {
+    document.querySelectorAll('.panel').forEach((panel) => {
+      panel.hidden = panel.id !== `panel-${name}`;
+    });
+    $('scrim').hidden = false;
+    if (name === 'posts') loadPosts();
+  }
+
+  function closePanels() {
+    document.querySelectorAll('.panel').forEach((panel) => (panel.hidden = true));
+    $('scrim').hidden = true;
+  }
+
+  document.querySelectorAll('[data-panel]').forEach((button) => {
+    button.addEventListener('click', () => openPanel(button.dataset.panel));
+  });
+  document.querySelectorAll('[data-close]').forEach((button) => {
+    button.addEventListener('click', closePanels);
+  });
+  $('scrim').addEventListener('click', closePanels);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closePanels();
+  });
+
+  /* ----------------------------------------------------------- posts list */
+
+  async function loadPosts() {
+    const container = $('posts-list');
+    try {
+      const { posts } = await apiFetch('/api/posts');
+      container.replaceChildren();
+      if (posts.length === 0) {
+        container.append(Object.assign(document.createElement('p'), {
+          className: 'dim mono',
+          textContent: 'No posts yet.',
+        }));
+        return;
+      }
+      for (const post of posts) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'post-item';
+        item.dataset.id = post.id;
+
+        const title = document.createElement('span');
+        title.className = 'post-item-title';
+        title.textContent = post.title;
+
+        const meta = document.createElement('span');
+        meta.className = 'mono dim post-item-meta';
+        const when = new Date(post.publishedAt ?? post.updatedAt).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+        meta.textContent = `${post.status} · ${when} · ${post.readingMinutes} min`;
+
+        item.append(title, meta);
+        item.addEventListener('click', () => openPost(post.id));
+        container.append(item);
+      }
+    } catch (error) {
+      if (error.message !== 'unauthorised') {
+        container.replaceChildren(
+          Object.assign(document.createElement('p'), { className: 'bad mono', textContent: error.message }),
+        );
+      }
+    }
+  }
+
+  async function openPost(id) {
+    if (state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
+    try {
+      const { post } = await apiFetch(`/api/posts/${id}`);
+      writeForm(post);
+      restoreDraft(post.updatedAt);
+      closePanels();
+      say(`Opened “${post.title}”.`);
+    } catch (error) {
+      if (error.message !== 'unauthorised') say(error.message, 'bad');
+    }
+  }
+
+  /* --------------------------------------------------------------- actions */
+
+  $('btn-save').addEventListener('click', () => save());
+
+  $('btn-new').addEventListener('click', () => {
+    if (state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
+    writeForm(null);
+    $('f-title').focus();
+  });
+
+  $('btn-delete').addEventListener('click', async () => {
+    if (!state.id) return say('Nothing to delete.', 'bad');
+    if (!confirm('Delete this post permanently?')) return;
+    try {
+      await apiFetch(`/api/posts/${state.id}`, { method: 'DELETE' });
+      clearDraft();
+      writeForm(null);
+      closePanels();
+      say('Deleted.', 'good');
+    } catch (error) {
+      if (error.message !== 'unauthorised') say(error.message, 'bad');
+    }
+  });
+
+  $('btn-lock').addEventListener('click', async () => {
+    if (state.dirty && !confirm('You have unsaved changes. Lock anyway?')) return;
+    await fetch('/api/auth', { method: 'DELETE' });
+    window.location.href = '/';
+  });
+
+  document.querySelectorAll('[data-view]').forEach((button) => {
+    button.addEventListener('click', () => {
+      panes.dataset.view = button.dataset.view;
+      document.querySelectorAll('[data-view]').forEach((other) => {
+        other.classList.toggle('is-on', other === button);
+      });
+      try {
+        localStorage.setItem('el:view', button.dataset.view);
+      } catch {
+        /* ignore */
+      }
+    });
+  });
+
+  /* ----------------------------------------------------------------- wire */
+
+  source.addEventListener('input', () => {
+    markDirty();
+    renderPreview();
+  });
+
+  // The slug follows the title until it is edited by hand, and never for a
+  // post that already exists — changing a live URL should be deliberate.
+  let slugTouched = false;
+  $('f-slug').addEventListener('input', () => (slugTouched = true));
+
+  for (const name of FIELDS) {
+    $(`f-${name}`).addEventListener('input', () => {
+      if (name === 'title' && !slugTouched && !state.id) {
+        $('f-slug').value = slugify($('f-title').value);
+      }
+      markDirty();
+      if (name === 'title' || name === 'slug') refresh();
+    });
+  }
+
+  window.addEventListener('beforeunload', (event) => {
+    if (!state.dirty) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+
+  // Boot: restore the layout choice, then any local draft of an unsaved post.
+  try {
+    const view = localStorage.getItem('el:view');
+    if (view) document.querySelector(`[data-view="${view}"]`)?.click();
+  } catch {
+    /* ignore */
+  }
+
+  writeForm(null);
+  restoreDraft(null);
+  $('f-title').focus();
+</script>
+
+<style>
+  .editor {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    background: var(--color-paper);
+  }
+
+  .warning {
+    background: #c2410c;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  /* ------------------------------------------------------------- top bar */
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    flex-shrink: 0;
+  }
+
+  .bar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .bar-group.right {
+    margin-left: auto;
+  }
+
+  .title-input {
+    flex: 1;
+    min-width: 6rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+    background: transparent;
+    border: 0;
+    color: var(--color-ink);
+    padding: 0.25rem 0;
+  }
+
+  .title-input::placeholder {
+    color: var(--color-ink-faint);
+    font-weight: 400;
+  }
+
+  .title-input:focus {
+    outline: none;
+    box-shadow: 0 1px 0 var(--color-accent);
+  }
+
+  button,
+  .ghost {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-ink);
+    padding: 0.3rem 0.5rem;
+    text-decoration: none;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .ghost:hover {
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+
+  .solid {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    padding-inline: 0.75rem;
+  }
+
+  .solid:hover {
+    background: var(--color-accent-deep);
+  }
+
+  .danger {
+    color: #9a3412;
+    border-color: currentColor;
+  }
+
+  .danger:hover {
+    background: color-mix(in srgb, #9a3412 12%, transparent);
+  }
+
+  .warn {
+    color: var(--color-accent-deep);
+  }
+
+  .good {
+    color: #15803d;
+  }
+
+  .bad {
+    color: #9a3412;
+  }
+
+  /* ------------------------------------------------------------ toolbar */
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.35rem 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tool {
+    min-width: 1.9rem;
+    text-align: center;
+    color: var(--color-ink-soft);
+    padding: 0.25rem 0.4rem;
+  }
+
+  .tool:hover {
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+    color: var(--color-ink);
+  }
+
+  .tool.is-on {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  .tool.bold { font-weight: 700; }
+  .tool.italic { font-style: italic; }
+  .tool.strike { text-decoration: line-through; }
+
+  .sep {
+    width: 1px;
+    height: 1rem;
+    background: var(--color-rule);
+    margin-inline: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .grow {
+    flex: 1;
+  }
+
+  .views {
+    display: flex;
+    gap: 0.15rem;
+    flex-shrink: 0;
+  }
+
+  /* -------------------------------------------------------------- panes */
+
+  .panes {
+    flex: 1;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .panes[data-view='write'] {
+    grid-template-columns: 1fr;
+  }
+
+  .panes[data-view='write'] .pane-preview {
+    display: none;
+  }
+
+  .panes[data-view='preview'] {
+    grid-template-columns: 1fr;
+  }
+
+  .panes[data-view='preview'] .pane-source {
+    display: none;
+  }
+
+  @media (max-width: 52rem) {
+    .panes {
+      grid-template-columns: 1fr;
+    }
+    .panes[data-view='split'] .pane-preview {
+      display: none;
+    }
+  }
+
+  .pane {
+    min-width: 0;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .pane-source {
+    border-right: 1px solid var(--color-rule);
+    display: flex;
+  }
+
+  #source {
+    flex: 1;
+    width: 100%;
+    resize: none;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.75;
+    padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 40vh;
+    tab-size: 2;
+  }
+
+  #source:focus {
+    outline: none;
+  }
+
+  #source::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  .dropzone {
+    position: absolute;
+    inset: 0.5rem;
+    border: 1px dashed var(--color-accent);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-paper));
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    color: var(--color-accent-deep);
+  }
+
+  .pane-preview {
+    padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 40vh;
+  }
+
+  #preview {
+    max-width: var(--measure);
+  }
+
+  /* ------------------------------------------------------------- status */
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 1rem;
+    border-top: 1px solid var(--color-rule);
+    font-size: 0.6875rem;
+    flex-shrink: 0;
+  }
+
+  /* ------------------------------------------------------------- panels */
+
+  .scrim {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+    z-index: 20;
+  }
+
+  .panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(24rem, 100vw);
+    background: var(--color-paper);
+    border-left: 1px solid var(--color-rule);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -16px 0 40px -24px rgba(28, 25, 23, 0.4);
+  }
+
+  .panel[hidden] {
+    display: none;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .panel-head h2 {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+    font-weight: 500;
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .form {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+  }
+
+  .form label {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .form label > span {
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .form label em {
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: normal;
+    opacity: 0.75;
+  }
+
+  .form :is(input, textarea, select) {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    padding: 0.45rem 0.55rem;
+    background: #fffaf1;
+    border: 1px solid var(--color-rule);
+    border-radius: 3px;
+    color: var(--color-ink);
+    width: 100%;
+  }
+
+  .form :is(input, textarea, select):focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .form textarea {
+    resize: vertical;
+    line-height: 1.55;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .row .ghost {
+    border-color: var(--color-rule);
+    flex-shrink: 0;
+  }
+
+  .panel-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .post-item {
+    display: grid;
+    gap: 0.2rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+    border-radius: 3px;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .post-item:hover {
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  }
+
+  .post-item-title {
+    font-weight: 550;
+    white-space: normal;
+  }
+
+  .post-item-meta {
+    font-size: 0.6875rem;
+  }
+</style>

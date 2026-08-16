@@ -1,0 +1,286 @@
+---
+/**
+ * A quiet "subscribe" link that opens a small modal.
+ *
+ * Built on a native <dialog>, which gives focus trapping, Escape-to-close,
+ * inert background and correct ARIA for free — no library, no framework.
+ */
+const { source = 'blog' } = Astro.props;
+---
+
+<button type="button" class="subscribe-trigger mono" data-subscribe-open>subscribe</button>
+
+<dialog id="subscribe-dialog" aria-labelledby="subscribe-heading">
+  <form method="dialog" class="close-form">
+    <button type="submit" class="close mono" aria-label="Close">esc</button>
+  </form>
+
+  <h2 id="subscribe-heading">New posts, by email.</h2>
+  <p class="blurb">
+    A short note when something goes up — the topic, a line about it, and a link. Nothing else,
+    and one click to leave.
+  </p>
+
+  <form id="subscribe-form" novalidate data-source={source}>
+    <label class="sr-only" for="subscribe-email">Email address</label>
+    <div class="row">
+      <input
+        id="subscribe-email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        spellcheck="false"
+        required
+      />
+      <button type="submit">Subscribe</button>
+    </div>
+    <p class="mono note" id="subscribe-note" role="status" aria-live="polite"></p>
+  </form>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('subscribe-dialog');
+  const form = document.getElementById('subscribe-form');
+  const input = document.getElementById('subscribe-email');
+  const note = document.getElementById('subscribe-note');
+  const submit = form.querySelector('button[type="submit"]');
+
+  function setNote(message, tone = '') {
+    note.textContent = message;
+    note.className = `mono note ${tone}`;
+  }
+
+  document.querySelectorAll('[data-subscribe-open]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      setNote('');
+      form.hidden = false;
+      dialog.showModal();
+      input.focus();
+    });
+  });
+
+  // Clicking the backdrop closes it: outside the dialog box means outside its
+  // bounding rect, since the backdrop is part of the dialog element itself.
+  dialog.addEventListener('click', (event) => {
+    if (event.target !== dialog) return;
+    const box = dialog.getBoundingClientRect();
+    const outside =
+      event.clientX < box.left ||
+      event.clientX > box.right ||
+      event.clientY < box.top ||
+      event.clientY > box.bottom;
+    if (outside) dialog.close();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = input.value.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      setNote('That doesn’t look like an email address.', 'bad');
+      input.focus();
+      return;
+    }
+
+    submit.disabled = true;
+    setNote('Sending…');
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, source: form.dataset.source }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        // Replace the form entirely — there is nothing left to do here.
+        form.hidden = true;
+        setNote('');
+        dialog.querySelector('.blurb').textContent =
+          'Check your inbox and click the confirmation link. That’s the last step.';
+        dialog.querySelector('h2').textContent = 'Almost there.';
+      } else {
+        setNote(data.error ?? 'Something went wrong. Try again?', 'bad');
+      }
+    } catch {
+      setNote('Network error. Try again?', 'bad');
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .subscribe-trigger {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: text-decoration-thickness 90ms ease;
+  }
+
+  .subscribe-trigger:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  dialog {
+    border: 1px solid var(--color-rule);
+    border-radius: 6px;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    padding: 1.75rem;
+    width: min(26rem, calc(100vw - 2rem));
+    box-shadow: 0 24px 60px -32px rgba(28, 25, 23, 0.5);
+    position: relative;
+  }
+
+  dialog::backdrop {
+    background: color-mix(in srgb, #1c1917 34%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Fade + lift in. `allow-discrete` is what lets a display:none element
+     animate on open without any JavaScript timing. */
+  dialog,
+  dialog::backdrop {
+    opacity: 0;
+    transition:
+      opacity 180ms ease,
+      translate 180ms ease,
+      overlay 180ms allow-discrete,
+      display 180ms allow-discrete;
+  }
+
+  dialog {
+    translate: 0 6px;
+  }
+
+  dialog[open],
+  dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  dialog[open] {
+    translate: 0 0;
+  }
+
+  @starting-style {
+    dialog[open],
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+    dialog[open] {
+      translate: 0 6px;
+    }
+  }
+
+  .close-form {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    margin: 0;
+  }
+
+  .close {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  .close:hover {
+    color: var(--color-ink);
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+
+  h2 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+    padding-right: 2.5rem;
+  }
+
+  .blurb {
+    margin-top: 0.6rem;
+    color: var(--color-ink-soft);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  #subscribe-form {
+    margin-top: 1.25rem;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    padding: 0.55rem 0.7rem;
+    background: #fffaf1;
+    border: 1px solid var(--color-rule);
+    border-radius: 4px;
+    color: var(--color-ink);
+  }
+
+  input::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  button[type='submit'] {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 120ms ease;
+  }
+
+  button[type='submit']:hover:not(:disabled) {
+    background: var(--color-accent-deep);
+  }
+
+  button[type='submit']:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .note {
+    margin-top: 0.6rem;
+    min-height: 1.1em;
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+  }
+
+  .note.bad {
+    color: #9a3412;
+  }
+</style>

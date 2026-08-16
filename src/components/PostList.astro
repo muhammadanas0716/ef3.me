@@ -1,0 +1,82 @@
+---
+import { formatDate, isoDate } from '../lib/seo.js';
+
+const { posts = [], empty = 'Nothing here yet.' } = Astro.props;
+
+/** Group by year so a long journal stays scannable. */
+const groups = [];
+for (const post of posts) {
+  const year = post.publishedAt ? new Date(post.publishedAt).getUTCFullYear() : 'Drafts';
+  const last = groups.at(-1);
+  if (last?.year === year) last.posts.push(post);
+  else groups.push({ year, posts: [post] });
+}
+---
+
+{posts.length === 0 ? (
+  <p class="dim empty">{empty}</p>
+) : (
+  groups.map((group) => (
+    <section class="year-group">
+      <h2 class="mono dim year">{group.year}</h2>
+      <ul class="posts">
+        {group.posts.map((post) => (
+          <li>
+            <a class="title" href={`/blog/${post.slug}`}>{post.title}</a>
+            <p class="excerpt">{post.excerpt}</p>
+            <p class="mono dim meta">
+              <time datetime={isoDate(post.publishedAt)}>{formatDate(post.publishedAt, { style: 'short' })}</time>
+              <span aria-hidden="true"> · </span>
+              <span>{post.readingMinutes} min</span>
+              {post.tags.length > 0 && (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  <span>{post.tags.join(', ')}</span>
+                </>
+              )}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))
+)}
+
+<style>
+  .empty {
+    margin-top: 2rem;
+  }
+
+  .year-group {
+    margin-top: 2.75rem;
+  }
+
+  .year {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+  }
+
+  .posts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .title {
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+
+  .excerpt {
+    margin-top: 0.3rem;
+    color: var(--color-ink-soft);
+    font-size: 1rem;
+  }
+
+  .meta {
+    margin-top: 0.4rem;
+  }
+</style>

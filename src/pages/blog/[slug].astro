@@ -1,0 +1,192 @@
+---
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config.js';
+import { safeQuery } from '../../lib/convex.js';
+import { api } from '../../../convex/_generated/api.js';
+import { renderMarkdown, makeExcerpt } from '../../lib/markdown.js';
+import { breadcrumbSchema, formatDate, isoDate, ogUrl, postSchema } from '../../lib/seo.js';
+
+const { slug } = Astro.params;
+const post = await safeQuery(api.posts.getBySlug, { slug }, null);
+
+// Rewrite rather than returning a bare 404 so the reader gets the real page.
+if (!post) return Astro.rewrite('/404');
+
+const [{ html, toc }, neighbours] = await Promise.all([
+  renderMarkdown(post.content),
+  safeQuery(api.posts.neighbours, { slug }, { newer: null, older: null }),
+]);
+
+const description = post.excerpt || makeExcerpt(post.content);
+const updated = post.updatedAt && post.publishedAt && post.updatedAt - post.publishedAt > 86_400_000;
+
+Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=604800');
+---
+
+<Base
+  title={post.title}
+  description={description}
+  canonical={post.canonicalUrl || `/blog/${post.slug}`}
+  type="article"
+  image={post.coverImage || ogUrl(post.slug)}
+  imageAlt={post.coverAlt || post.title}
+  publishedTime={isoDate(post.publishedAt)}
+  modifiedTime={isoDate(post.updatedAt)}
+  tags={post.tags}
+  schemas={[
+    postSchema(post),
+    breadcrumbSchema([
+      { name: 'Home', href: '/' },
+      { name: site.blogTitle, href: '/blog' },
+      { name: post.title, href: `/blog/${post.slug}` },
+    ]),
+  ]}
+>
+  <article>
+    <header class="post-header">
+      <p class="mono dim breadcrumb"><a href="/blog">{site.blogTitle}</a> /</p>
+      <h1>{post.title}</h1>
+      <p class="mono dim meta">
+        <time datetime={isoDate(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+        <span aria-hidden="true"> · </span>
+        <span>{post.readingMinutes} min read</span>
+        <span aria-hidden="true"> · </span>
+        <span>{post.wordCount.toLocaleString('en-GB')} words</span>
+      </p>
+      {updated && (
+        <p class="mono dim meta">
+          Updated <time datetime={isoDate(post.updatedAt)}>{formatDate(post.updatedAt)}</time>
+        </p>
+      )}
+    </header>
+
+    {post.coverImage && (
+      <figure class="cover">
+        <img src={post.coverImage} alt={post.coverAlt || ''} loading="eager" decoding="async" />
+      </figure>
+    )}
+
+    {toc.length > 2 && (
+      <nav class="toc" aria-label="Table of contents">
+        <p class="mono dim toc-title">Contents</p>
+        <ul class="dash-list">
+          {toc.map((entry) => (
+            <li data-depth={entry.depth}><a href={`#${entry.id}`}>{entry.text}</a></li>
+          ))}
+        </ul>
+      </nav>
+    )}
+
+    <div class="prose" set:html={html} />
+
+    {post.tags.length > 0 && (
+      <p class="mono post-tags">
+        {post.tags.map((tag) => <a href={`/tags/${encodeURIComponent(tag)}`}>#{tag}</a>)}
+      </p>
+    )}
+  </article>
+
+  <nav class="pager mono" aria-label="More posts">
+    {neighbours.older && (
+      <a class="pager-link" href={`/blog/${neighbours.older.slug}`}>
+        <span class="dim">← older</span><br />{neighbours.older.title}
+      </a>
+    )}
+    {neighbours.newer && (
+      <a class="pager-link newer" href={`/blog/${neighbours.newer.slug}`}>
+        <span class="dim">newer →</span><br />{neighbours.newer.title}
+      </a>
+    )}
+  </nav>
+</Base>
+
+<style>
+  .post-header {
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumb {
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.375rem;
+    font-weight: 650;
+    line-height: 1.28;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  .meta {
+    margin-top: 0.55rem;
+  }
+
+  .cover {
+    margin-block: 2rem;
+  }
+
+  .cover img {
+    border-radius: 4px;
+    border: 1px solid var(--color-rule);
+    display: block;
+    width: 100%;
+  }
+
+  .toc {
+    margin-block: 2rem;
+    padding: 1rem 0 1.1rem;
+    border-block: 1px solid var(--color-rule);
+    font-size: 0.9375rem;
+  }
+
+  .toc-title {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+  }
+
+  .toc li[data-depth='3'] {
+    padding-left: 2.25rem;
+  }
+
+  .post-tags {
+    margin-top: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+  }
+
+  .pager {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-rule);
+    display: grid;
+    gap: 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  .pager-link {
+    text-decoration: none;
+    line-height: 1.5;
+  }
+
+  .pager-link:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+
+  .pager-link.newer {
+    text-align: right;
+  }
+
+  @media (min-width: 34rem) {
+    .pager {
+      grid-template-columns: 1fr 1fr;
+    }
+    .pager-link.newer:only-child {
+      grid-column: 2;
+    }
+  }
+</style>

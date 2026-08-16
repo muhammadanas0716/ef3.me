@@ -1,0 +1,53 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostList from '../../components/PostList.astro';
+import { site } from '../../config.js';
+import { safeQuery } from '../../lib/convex.js';
+import { api } from '../../../convex/_generated/api.js';
+import { breadcrumbSchema } from '../../lib/seo.js';
+
+const tag = decodeURIComponent(Astro.params.tag ?? '');
+const posts = await safeQuery(api.posts.listPublished, { tag }, []);
+
+if (posts.length === 0) return Astro.rewrite('/404');
+
+const description = `${posts.length} post${posts.length === 1 ? '' : 's'} tagged “${tag}” — ${site.blogDescription}`;
+
+Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=604800');
+---
+
+<Base
+  title={`Tagged “${tag}”`}
+  description={description}
+  canonical={`/tags/${encodeURIComponent(tag)}`}
+  schemas={[
+    breadcrumbSchema([
+      { name: 'Home', href: '/' },
+      { name: site.blogTitle, href: '/blog' },
+      { name: tag, href: `/tags/${encodeURIComponent(tag)}` },
+    ]),
+  ]}
+>
+  <h1>Tagged <span class="tag">{tag}</span></h1>
+  <p class="mono dim count">{posts.length} post{posts.length === 1 ? '' : 's'} · <a href="/blog">all posts</a></p>
+
+  <PostList posts={posts} />
+</Base>
+
+<style>
+  h1 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+  }
+
+  .tag {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+
+  .count {
+    margin-top: 0.5rem;
+  }
+</style>

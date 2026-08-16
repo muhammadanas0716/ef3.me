@@ -1,0 +1,121 @@
+---
+import { site } from '../config.js';
+---
+
+<div class="gate">
+  <form id="pin-form" novalidate>
+    <label class="mono dim" for="pin">{site.shortName} · write</label>
+    <input
+      id="pin"
+      name="pin"
+      type="password"
+      inputmode="numeric"
+      autocomplete="current-password"
+      placeholder="PIN"
+      required
+      autofocus
+    />
+    <button type="submit">Unlock</button>
+    <p class="mono error" id="pin-error" role="alert" aria-live="polite"></p>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('pin-form');
+  const input = document.getElementById('pin');
+  const error = document.getElementById('pin-error');
+  const button = form.querySelector('button');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    error.textContent = '';
+    button.disabled = true;
+    button.textContent = 'Checking…';
+
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pin: input.value }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+        return;
+      }
+
+      const data = await response.json().catch(() => ({}));
+      error.textContent = data.error ?? 'Could not unlock.';
+      input.value = '';
+      input.focus();
+    } catch {
+      error.textContent = 'Network error.';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Unlock';
+    }
+  });
+</script>
+
+<style>
+  .gate {
+    display: flex;
+    align-items: center;
+    min-height: 50vh;
+  }
+
+  form {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 15rem;
+  }
+
+  label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  input {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: 0.25em;
+    padding: 0.6rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--color-rule);
+    border-radius: 3px;
+    color: var(--color-ink);
+  }
+
+  input:focus {
+    border-color: var(--color-accent);
+    outline: none;
+  }
+
+  button {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border: 0;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--color-accent-deep);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .error {
+    color: #9a3412;
+    min-height: 1.2em;
+    font-size: 0.75rem;
+  }
+</style>

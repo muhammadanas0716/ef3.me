@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../config.js';
+
+// Also reached via `Astro.rewrite('/404')` from dynamic routes, where the
+// status would otherwise default to 200.
+Astro.response.status = 404;
+---
+
+<Base title="Not found" description="That page doesn’t exist." noindex>
+  <h1>404</h1>
+  <p class="body">
+    That page isn’t here. Try <a href="/blog">the {site.blogTitle.toLowerCase()}</a> or
+    <a href="/">start from the top</a>.
+  </p>
+</Base>
+
+<style>
+  h1 {
+    font-family: var(--font-mono);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    color: var(--color-accent-deep);
+  }
+
+  .body {
+    margin-top: 0.75rem;
+  }
+</style>
