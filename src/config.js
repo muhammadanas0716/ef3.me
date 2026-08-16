@@ -51,7 +51,7 @@ which is what [this journal](/blog) is.`,
     {
       heading: 'Currently',
       items: [
-        'Working through deep learning from first principles — backprop, optimisation, and the architectures that actually earn their complexity.',
+        'Working through deep learning from first principles, backprop, optimisation, and the architectures that actually earn their complexity.',
         'Reading a book on titled Crime and Punishment by Dostoevsky, just trying philosophy and literature for a change.',
         'Writing up a few things I learned, most days.',
       ],

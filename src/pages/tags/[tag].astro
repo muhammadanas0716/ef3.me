@@ -11,7 +11,7 @@ const posts = await safeQuery(api.posts.listPublished, { tag }, []);
 
 if (posts.length === 0) return Astro.rewrite('/404');
 
-const description = `${posts.length} post${posts.length === 1 ? '' : 's'} tagged “${tag}” — ${site.blogDescription}`;
+const description = `${posts.length} post${posts.length === 1 ? '' : 's'} tagged “${tag}”, ${site.blogDescription}`;
 
 Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=604800');
 ---

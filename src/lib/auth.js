@@ -70,7 +70,7 @@ export function clearSession(cookies) {
 
 /**
  * Best-effort brute-force brake. Serverless instances are short-lived and not
- * shared, so this is a speed bump rather than a wall — the real protection is
+ * shared, so this is a speed bump rather than a wall: the real protection is
  * that a wrong PIN reveals nothing and the PIN itself is never echoed back.
  */
 const attempts = new Map();
@@ -106,7 +106,7 @@ function deny(status, error) {
  * Cross-site request forgery guard.
  *
  * `SameSite=Lax` already stops a browser attaching the session cookie to a
- * cross-site write, and Astro rejects cross-origin *form* posts — but neither
+ * cross-site write, and Astro rejects cross-origin *form* posts, but neither
  * covers a JSON request from a non-browser client, so check the origin
  * ourselves. A mismatched `Origin` is always refused; an absent one is allowed
  * so scripting against your own API from a terminal still works.
@@ -122,8 +122,8 @@ function sameOrigin(context) {
 }
 
 /**
- * Guard for every editor endpoint. Takes the whole Astro API context — not
- * just `cookies` — and returns a `Response` to send straight back, or `null`
+ * Guard for every editor endpoint. Takes the whole Astro API context, not
+ * just `cookies`, and returns a `Response` to send straight back, or `null`
  * when the caller may proceed.
  */
 export function requireAuth(context) {

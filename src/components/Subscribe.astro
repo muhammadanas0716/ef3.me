@@ -2,7 +2,7 @@
 /**
  * A quiet "subscribe" link that expands an email field underneath it.
  *
- * No modal and no overlay — clicking toggles a disclosure that grows into
+ * No modal and no overlay, clicking toggles a disclosure that grows into
  * place. The height animation is pure CSS (`grid-template-rows: 0fr → 1fr`),
  * which animates smoothly without anyone having to measure the element, so
  * the only JavaScript here is the toggle and the fetch.
@@ -44,7 +44,7 @@ const { source = 'blog' } = Astro.props;
         </div>
       </form>
       <p class="note mono" data-note role="status" aria-live="polite">
-        New posts only — the topic, a line about it, and a link. One click to leave.
+        New posts only, the topic, a line about it, and a link. One click to leave.
       </p>
     </div>
   </div>
@@ -102,7 +102,7 @@ const { source = 'blog' } = Astro.props;
         const data = await response.json().catch(() => ({}));
 
         if (response.ok) {
-          // Nothing left to do here — retire the form and leave the message.
+          // Nothing left to do here, retire the form and leave the message.
           form.remove();
           setNote('Check your inbox and click the confirmation link.', 'good');
         } else {
@@ -143,8 +143,7 @@ const { source = 'blog' } = Astro.props;
     transition: text-decoration-thickness 90ms ease;
   }
 
-  .trigger:hover,
-  .subscribe.is-open .trigger {
+  .trigger:hover.subscribe.is-open .trigger {
     text-decoration-thickness: 2px;
   }
 

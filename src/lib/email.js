@@ -45,8 +45,8 @@ const FAINT = '#857a6c';
 const ACCENT = '#f59e0b';
 
 /**
- * Email HTML is deliberately old-fashioned — tables, inline styles, no
- * external CSS — because that is the only thing every mail client agrees on.
+ * Email HTML is deliberately old-fashioned, tables, inline styles, no
+ * external CSS, because that is the only thing every mail client agrees on.
  * It still uses the site's paper-and-amber palette.
  */
 function shell({ preheader, body, footer }) {
@@ -97,12 +97,12 @@ function confirmEmail(confirmUrl) {
       body: `
         <tr><td style="padding-bottom:16px;">
           You asked for new posts from <strong>${escapeHtml(site.blogTitle.toLowerCase())}</strong>
-          — notes on machine learning, deep learning and finance, sent when something new goes up.
+         , notes on machine learning, deep learning and finance, sent when something new goes up.
         </td></tr>
         <tr><td style="padding-bottom:24px;color:${SOFT};">One click to confirm:</td></tr>
         <tr><td style="padding-bottom:28px;">${button(confirmUrl, 'Confirm subscription')}</td></tr>
         <tr><td style="color:${FAINT};font-size:14px;">
-          If that wasn't you, ignore this — nothing happens without the click.
+          If that wasn't you, ignore this, nothing happens without the click.
         </td></tr>`,
       footer: `<a href="${absoluteUrl('/')}" style="color:${FAINT};">${escapeHtml(new URL(site.url).host)}</a>`,
     }),
@@ -159,7 +159,7 @@ export async function sendConfirmation(email, token) {
  * Mails every confirmed subscriber about a new post.
  *
  * Each message carries its own unsubscribe link plus the `List-Unsubscribe`
- * headers, which is what keeps a bulk send out of the spam folder — Gmail and
+ * headers, which is what keeps a bulk send out of the spam folder, Gmail and
  * Outlook both weight one-click unsubscribe heavily.
  *
  * Returns how many were sent and how many failed, so the editor can report it

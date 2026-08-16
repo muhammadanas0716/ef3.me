@@ -1,7 +1,7 @@
 ---
 import { site } from '../config.js';
 import { jsonLd, ogUrl, metaDescription } from '../lib/seo.js';
-// Imported for its built URL so the body font can be preloaded — it is the
+// Imported for its built URL so the body font can be preloaded: it is the
 // largest contentful paint on every page, so fetching it in parallel with the
 // stylesheet rather than after it is the single biggest perf win available.
 import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
@@ -9,7 +9,7 @@ import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal
 const {
   title,
   description = site.description,
-  /** Full page title override; otherwise `title — shortName`. */
+  /** Full page title override; otherwise `title, shortName`. */
   fullTitle,
   canonical = Astro.url.pathname,
   image,
@@ -26,7 +26,7 @@ const {
 // `site.url` is the single source of truth so canonical, OG and feed URLs can
 // never disagree with each other.
 const canonicalUrl = new URL(canonical, `${site.url}/`).toString();
-const pageTitle = fullTitle ?? (title ? `${title} — ${site.shortName}` : `${site.name} — ${site.shortName}`);
+const pageTitle = fullTitle ?? (title ? `${title}, ${site.shortName}` : `${site.name}, ${site.shortName}`);
 const ogImage = new URL(image ?? ogUrl(), site.url).toString();
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const summary = metaDescription(description);
@@ -76,9 +76,9 @@ const summary = metaDescription(description);
 
 <link rel="preload" as="font" type="font/woff2" href={interWoff2} crossorigin="anonymous" />
 
-<link rel="alternate" type="application/rss+xml" title={`${site.name} — ${site.blogTitle}`} href="/rss.xml" />
-<link rel="alternate" type="application/atom+xml" title={`${site.name} — ${site.blogTitle} (Atom)`} href="/atom.xml" />
-<link rel="alternate" type="application/feed+json" title={`${site.name} — ${site.blogTitle} (JSON)`} href="/feed.json" />
+<link rel="alternate" type="application/rss+xml" title={`${site.name}, ${site.blogTitle}`} href="/rss.xml" />
+<link rel="alternate" type="application/atom+xml" title={`${site.name}, ${site.blogTitle} (Atom)`} href="/atom.xml" />
+<link rel="alternate" type="application/feed+json" title={`${site.name}, ${site.blogTitle} (JSON)`} href="/feed.json" />
 <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

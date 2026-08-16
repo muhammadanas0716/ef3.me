@@ -34,7 +34,7 @@ export async function PUT(context) {
 
     await convex().mutation(api.posts.update, { token, id, post });
 
-    // Fires only on the first publish — `claimNotification` is idempotent.
+    // Fires only on the first publish, `claimNotification` is idempotent.
     const notified = post.status === 'published' ? await announcePost(id) : null;
     return json({ id, post, notified });
   });

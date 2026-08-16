@@ -2,7 +2,7 @@ import { site } from '../config.js';
 import { absoluteUrl, ogUrl } from '../lib/seo.js';
 import { feedHeaders, feedItems, feedMeta } from '../lib/feed.js';
 
-/** JSON Feed 1.1 — what most modern readers and scrapers prefer to parse. */
+/** JSON Feed 1.1, what most modern readers and scrapers prefer to parse. */
 export async function GET() {
   const items = await feedItems();
   const meta = feedMeta(items);

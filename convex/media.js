@@ -4,7 +4,7 @@ import { assertWriter } from './lib.js';
 
 /**
  * Convex hands back a short-lived, single-use URL that the browser POSTs the
- * file straight to — the bytes never pass through the Astro server.
+ * file straight to, the bytes never pass through the Astro server.
  */
 export const generateUploadUrl = mutation({
   args: { token: v.string() },

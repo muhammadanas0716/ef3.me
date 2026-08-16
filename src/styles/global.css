@@ -21,7 +21,7 @@
     'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* The reading column. Deliberately narrow — ~68 characters. */
+  /* The reading column. Deliberately narrow, ~68 characters. */
   --measure: 34rem;
 }
 

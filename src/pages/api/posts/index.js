@@ -6,7 +6,7 @@ import { announcePost } from '../../../lib/notify.js';
 
 export const prerender = false;
 
-/** Every post including drafts — powers the editor's post list. */
+/** Every post including drafts, powers the editor's post list. */
 export async function GET(context) {
   const denied = requireAuth(context);
   if (denied) return denied;

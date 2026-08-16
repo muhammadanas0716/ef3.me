@@ -5,7 +5,7 @@ import { techstack, typefaces, palette } from '../lib/techstack.js';
 import { absoluteUrl, breadcrumbSchema } from '../lib/seo.js';
 
 const description =
-  'Every piece of software this site is built from — Astro, Convex, Vercel, Resend, KaTeX, Shiki — what each one does and why it was chosen.';
+  'Every piece of software this site is built from, Astro, Convex, Vercel, Resend, KaTeX, Shiki, what each one does and why it was chosen.';
 
 /**
  * A little structured data of its own: each entry is a real, named piece of
@@ -14,7 +14,7 @@ const description =
 const itemList = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',
-  name: `Tech stack — ${site.shortName}`,
+  name: `Tech stack, ${site.shortName}`,
   url: absoluteUrl('/techstack'),
   numberOfItems: techstack.length,
   itemListElement: techstack.map((tool, index) => ({
@@ -48,7 +48,7 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
 >
   <h1>Tech stack</h1>
   <p class="lede">
-    What this site runs on, and why. Nothing here is load-bearing for anyone but me — but people
+    What this site runs on, and why. Nothing here is load-bearing for anyone but me, but people
     ask, so here it is.
   </p>
 
@@ -58,8 +58,8 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
         <div class="head">
           {/*
             Brand marks are inlined, so there is no request and no reflow.
-            They are also purely decorative — the tool's name sits right next
-            to them in text — so they are hidden from assistive tech rather
+            They are also purely decorative, the tool's name sits right next
+            to them in text, so they are hidden from assistive tech rather
             than labelled. Labelling them would make a screen reader announce
             "KaTeX logo, KaTeX, Typesets the mathematics".
           */}
@@ -92,7 +92,7 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
     <ul class="palette">
       {palette.map((colour) => (
         <li class="swatch">
-          {/* Decorative — the hex sits next to it in text. */}
+          {/* Decorative, the hex sits next to it in text. */}
           <span class="chip" style={`background:${colour.value}`} aria-hidden="true"></span>
           <span class="swatch-name">{colour.name}</span>
           <code class="swatch-hex">{colour.value}</code>
@@ -199,20 +199,24 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
     gap: 0.6rem 3rem;
   }
 
+  /* One line per colour. A grid with `auto` columns stretched to fill the
+     palette column and shoved the name away from its chip, so this is a flex
+     row instead: everything sits directly next to the swatch it describes. */
   .swatch {
-    display: grid;
-    /* Fixed name column so every hex lines up down the page. */
-    grid-template-columns: auto minmax(6rem, max-content) auto;
-    align-items: center;
-    gap: 0 0.55rem;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
     font-size: 0.875rem;
   }
 
   .chip {
     width: 0.9rem;
     height: 0.9rem;
+    flex: 0 0 auto;
+    align-self: center;
     border-radius: 3px;
-    /* Every swatch needs an outline — paper on paper is invisible otherwise. */
+    /* Every swatch needs an outline, paper on paper is invisible otherwise. */
     border: 1px solid color-mix(in srgb, var(--color-ink) 22%, transparent);
   }
 
@@ -227,7 +231,6 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
   }
 
   .swatch-use {
-    grid-column: 2 / -1;
     font-size: 0.75rem;
     line-height: 1.5;
   }

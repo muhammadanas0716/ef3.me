@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { assertWriter } from './lib.js';
 
 /**
- * Sign-up is deliberately public — anyone may subscribe — but it reveals
+ * Sign-up is deliberately public, anyone may subscribe, but it reveals
  * nothing: the caller always gets the same shape back whether the address was
  * new, already pending or already active. Otherwise this endpoint would be a
  * way to test who is on the list.
@@ -71,7 +71,7 @@ export const unsubscribe = mutation({
   },
 });
 
-/** The mailing list. Writer-only — this is the one query that exposes addresses. */
+/** The mailing list. Writer-only: this is the one query that exposes addresses. */
 export const listActive = query({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
@@ -85,8 +85,8 @@ export const listActive = query({
 });
 
 /**
- * Hard-deletes an address. `unsubscribe` is the normal path — it keeps the
- * row so a re-subscribe is recognised — but a genuine erasure request (or a
+ * Hard-deletes an address. `unsubscribe` is the normal path: it keeps the
+ * row so a re-subscribe is recognised, but a genuine erasure request (or a
  * test address) needs the record gone entirely.
  */
 export const remove = mutation({

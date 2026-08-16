@@ -4,7 +4,7 @@
  *   node scripts/logos.mjs
  *
  * simple-icons tracks each company's own brand guidelines, so this is the
- * official mark — we just bake it into the bundle rather than hotlinking a
+ * official mark, we just bake it into the bundle rather than hotlinking a
  * CDN that might move or disappear.
  */
 import { writeFileSync } from 'node:fs';
@@ -32,7 +32,7 @@ for (const [key, slug] of Object.entries(WANTED)) {
 const header = `/**
  * Official brand marks, extracted from \`simple-icons\` (which tracks each
  * company's own brand guidelines) so the logos ship with the site instead of
- * being hotlinked at runtime — no third-party request, no layout shift, and
+ * being hotlinked at runtime: no third-party request, no layout shift, and
  * nothing breaks when someone reorganises their CDN.
  *
  * Regenerate with: node scripts/logos.mjs

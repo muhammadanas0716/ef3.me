@@ -92,7 +92,7 @@ export const tagCounts = query({
   },
 });
 
-/** Slug + timestamps only — everything sitemap.xml needs. */
+/** Slug + timestamps only, everything sitemap.xml needs. */
 export const sitemapEntries = query({
   args: {},
   handler: async (ctx) => {

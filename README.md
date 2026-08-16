@@ -4,12 +4,12 @@ Effie's personal site and ML/DL journal. Astro (plain JS, on-demand rendered),
 Convex for the database and image storage, Resend for the newsletter, deployed
 on Vercel.
 
-- `/` — about me
-- `/blog` — the journal, `/blog/<slug>` for a post, `/tags/<tag>` to filter
-- `/techstack` — what the site is built from, and why
-- `/write` — PIN-locked markdown editor with live preview and image uploads
-- `/rss.xml`, `/atom.xml`, `/feed.json` — full-text feeds
-- `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/og/<slug>.png` — generated
+- `/`, about me
+- `/blog`, the journal, `/blog/<slug>` for a post, `/tags/<tag>` to filter
+- `/techstack`, what the site is built from, and why
+- `/write`, PIN-locked markdown editor with live preview and image uploads
+- `/rss.xml`, `/atom.xml`, `/feed.json`, full-text feeds
+- `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/og/<slug>.png`, generated
 
 ## Setup
 
@@ -24,7 +24,7 @@ cp .env.example .env.local
 pnpm convex:dev          # creates the deployment, writes CONVEX_URL to .env.local
 ```
 
-Leave that running while you work — it pushes `convex/` on every save.
+Leave that running while you work, it pushes `convex/` on every save.
 
 Then set the shared write secret on the deployment, using the **same value** as
 `WRITE_TOKEN` in `.env.local`:
@@ -65,9 +65,9 @@ Beyond standard markdown and GFM (tables, task lists, strikethrough):
 | --- | --- |
 | `$x^2$`, `$$ … $$` | KaTeX, inline and display |
 | ```` ```python ```` | Shiki highlighting, with a copy button |
-| `> [!NOTE]` | Callout — also `TIP`, `IMPORTANT`, `WARNING`, `CAUTION` |
+| `> [!NOTE]` | Callout, also `TIP`, `IMPORTANT`, `WARNING`, `CAUTION` |
 | `[^1]` … `[^1]: text` | Footnotes, collected at the bottom |
-| A URL alone on a line | Embed — YouTube, Vimeo, Loom, Spotify, CodePen; anything else becomes a link card |
+| A URL alone on a line | Embed, YouTube, Vimeo, Loom, Spotify, CodePen; anything else becomes a link card |
 
 Shortcuts: `⌘S` save, `⌘B` bold, `⌘I` italic, `⌘K` link, `⌘E` inline code.
 `Tab` indents, `Enter` continues lists and quotes. Paste or drag an image
@@ -93,18 +93,18 @@ Handled for you, but worth knowing about:
   Google never truncates one mid-word.
 - A 1200×630 OG image rendered per post at `/og/<slug>.png` (satori + sharp),
   cached for a week.
-- Three full-text feeds — `rss.xml`, `atom.xml`, `feed.json` — plus
+- Three full-text feeds, `rss.xml`, `atom.xml`, `feed.json`, plus
   `llms.txt`, a plain-text index for AI crawlers. All generated from the
   database, so a new post appears everywhere the moment it publishes.
 - `sitemap.xml` includes each post's social image via the image extension.
 - Related posts (by shared tags) at the foot of every article, for internal
   linking; `trailingSlash: 'never'` so one page never has two URLs.
-- The body font is preloaded from its hashed build URL — the largest single
+- The body font is preloaded from its hashed build URL, the largest single
   LCP win available here.
 - Pages are ISR-cached on Vercel's CDN for 60s with a week of
   stale-while-revalidate; `/write` and `/api/*` are never cached.
 
-Set the **excerpt** in the details panel — it becomes the meta description. If a
+Set the **excerpt** in the details panel: it becomes the meta description. If a
 post appeared elsewhere first, set **canonical url** so you don't compete with
 yourself.
 
@@ -134,7 +134,7 @@ npx convex env set --prod WRITE_TOKEN "<same value>"
 
 ## Making it yours
 
-`src/config.js` holds the name, bio, nav links and blog copy — edit that rather
+`src/config.js` holds the name, bio, nav links and blog copy, edit that rather
 than the templates. Colours and type live at the top of `src/styles/global.css`
 (`--color-paper`, `--color-accent`, `--measure`).
 
@@ -159,13 +159,13 @@ Readers subscribe from `/blog`. The flow is double opt-in:
 
 Step 3 is guarded by `posts.claimNotification`, a Convex mutation that stamps
 `notifiedAt` and returns the post only to the first caller. Because Convex
-mutations are transactions, re-saving a published post — or two saves racing —
+mutations are transactions, re-saving a published post, or two saves racing , 
 cannot send twice. If the send fails, the claim is released so the next save
 retries.
 
 Every email carries a per-subscriber unsubscribe link plus the
 `List-Unsubscribe` headers, so Gmail's own one-click button works. That
-endpoint (`/api/unsubscribe`) is deliberately open to cross-origin POSTs — it's
+endpoint (`/api/unsubscribe`) is deliberately open to cross-origin POSTs, it's
 idempotent and authenticated by the token, and refusing those requests is what
 gets a sender flagged.
 

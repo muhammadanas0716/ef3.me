@@ -2,7 +2,7 @@ import { site } from '../config.js';
 import { absoluteUrl } from '../lib/seo.js';
 import { cdata, escapeXml, feedHeaders, feedItems, feedMeta } from '../lib/feed.js';
 
-/** Atom alongside RSS — some readers and aggregators prefer or only accept it. */
+/** Atom alongside RSS, some readers and aggregators prefer or only accept it. */
 export async function GET() {
   const items = await feedItems();
   const meta = feedMeta(items);

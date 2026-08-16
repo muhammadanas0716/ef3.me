@@ -36,12 +36,12 @@ export function metaDescription(text, limit = 158) {
   if (clean.length <= limit) return clean;
   const cut = clean.slice(0, limit);
   const lastSpace = cut.lastIndexOf(' ');
-  return `${cut.slice(0, lastSpace > 80 ? lastSpace : limit).replace(/[,;:.\s]+$/, '')}…`;
+  return `${cut.slice(0, lastSpace > 80 ? lastSpace : limit).replace(/[;:.\s]+$/, '')}…`;
 }
 
 /* ---------------------------------------------------------- structured data */
 
-/** A reusable image node — Google prefers dimensions over a bare URL string. */
+/** A reusable image node, Google prefers dimensions over a bare URL string. */
 function imageObject(url, { width = 1200, height = 630, caption } = {}) {
   return {
     '@type': 'ImageObject',
@@ -58,7 +58,7 @@ export function personSchema() {
     '@type': 'Person',
     '@id': `${site.url}/#person`,
     name: site.name,
-    // The name I go by, plus the legal one — `alternateName` is how you tell a
+    // The name I go by, plus the legal one, `alternateName` is how you tell a
     // search engine that "Effie" and "Muhammad Anas" are the same person.
     alternateName: site.legalName ? [site.legalName, site.shortName] : undefined,
     url: site.url,
@@ -97,7 +97,7 @@ export function blogSchema(posts = []) {
     '@type': 'Blog',
     '@id': `${site.url}/blog#blog`,
     url: absoluteUrl('/blog'),
-    name: `${site.blogTitle} — ${site.name}`,
+    name: `${site.blogTitle}, ${site.name}`,
     description: site.blogDescription,
     inLanguage: site.lang,
     author: { '@id': `${site.url}/#person` },

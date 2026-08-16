@@ -14,7 +14,7 @@ export const techstack = [
     mark: logos.astro,
     role: 'The web framework everything is built on.',
     why: `Ships zero JavaScript by default, so a page of prose really is just HTML and CSS.
-      The two places that need scripting — the editor and the subscribe field — opt in on their
+      The two places that need scripting, the editor and the subscribe field, opt in on their
       own, which is why a post loads instantly on a bad connection.`,
   },
   {
@@ -40,7 +40,7 @@ export const techstack = [
     mark: logos.resend,
     role: 'Sends the newsletter.',
     why: `A plain HTTP API and sane deliverability defaults. It handles the confirmation email
-      and the one that goes out when a post is published — with one-click unsubscribe, which is
+      and the one that goes out when a post is published, with one-click unsubscribe, which is
       what keeps a small sender out of the spam folder.`,
   },
   {
@@ -49,7 +49,7 @@ export const techstack = [
     mark: logos.markdown,
     role: 'The format every post is written in.',
     why: `Rendered on request with marked, extended here for LaTeX, footnotes, callouts and
-      embeds. Keeping the source as markdown means the posts outlive this site — they are just
+      embeds. Keeping the source as markdown means the posts outlive this site: they are just
       text, portable anywhere.`,
   },
   {
@@ -57,7 +57,7 @@ export const techstack = [
     url: 'https://katex.org',
     image: '/logos/katex.svg',
     role: 'Typesets the mathematics.',
-    why: `Equations are rendered to HTML on the server, so they arrive already laid out — no
+    why: `Equations are rendered to HTML on the server, so they arrive already laid out, no
       flash of raw LaTeX, and nothing to download before the maths is readable.`,
   },
   {
@@ -76,7 +76,7 @@ export const techstack = [
     role: 'Draws the social preview images.',
     why: `Every post gets its own 1200×630 card, laid out from the title with Satori and
       converted to PNG by sharp. Rendered on demand and cached, so there is no image to make
-      by hand — ever.`,
+      by hand, ever.`,
   },
   {
     name: 'Tailwind CSS',
@@ -91,7 +91,7 @@ export const techstack = [
     url: 'https://pnpm.io',
     mark: logos.pnpm,
     role: 'Installs the dependencies.',
-    why: `Strict by default — a package you did not declare is a package you cannot import,
+    why: `Strict by default: a package you did not declare is a package you cannot import,
       which catches a whole class of "works on my machine" before it ships.`,
   },
 ];
@@ -104,7 +104,7 @@ export const typefaces = [
 
 /**
  * The whole palette. These are the actual custom properties from
- * `src/styles/global.css` — if you change one there, change it here too.
+ * `src/styles/global.css`, if you change one there, change it here too.
  */
 export const palette = [
   { name: 'Paper', value: '#feeccf', token: '--color-paper', use: 'the background, everywhere' },

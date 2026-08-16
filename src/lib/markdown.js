@@ -52,7 +52,7 @@ let highlighterPromise;
 function highlighter() {
   highlighterPromise ??= createHighlighter({ themes: ['github-light'], langs: LANGS }).catch(
     (error) => {
-      // Never cache a rejection — a transient failure shouldn't disable
+      // Never cache a rejection, a transient failure shouldn't disable
       // highlighting for the whole lifetime of the instance.
       highlighterPromise = undefined;
       throw error;
@@ -128,7 +128,7 @@ const inlineMath = {
  *
  * Providers that support iframes get a real player, kept 16:9 by CSS and
  * lazy-loaded so an embed never costs anything above the fold. Everything else
- * becomes a plain link card — no third-party JavaScript is ever injected,
+ * becomes a plain link card: no third-party JavaScript is ever injected,
  * which keeps the page fast, private and immune to a provider's script
  * breaking the article.
  */
@@ -223,7 +223,7 @@ const embed = {
     return index === -1 ? undefined : index;
   },
   tokenizer(src) {
-    // Must be the entire line — a URL inside a sentence stays a plain link.
+    // Must be the entire line, a URL inside a sentence stays a plain link.
     const match = /^(https?:\/\/\S+)[ \t]*(?:\n+|$)/.exec(src);
     if (!match) return undefined;
     const html = renderEmbed(match[1]);
@@ -399,7 +399,7 @@ export function makeExcerpt(markdown, limit = 180) {
 /* ------------------------------------------------------------------- render */
 
 /**
- * Inline-only markdown — links, emphasis, code. Used for short strings from
+ * Inline-only markdown, links, emphasis, code. Used for short strings from
  * `config.js` where a full block parse would wrap everything in `<p>`.
  */
 export function renderInline(markdown) {
@@ -410,7 +410,7 @@ export function renderInline(markdown) {
 
 /**
  * Renders a post body. Returns the HTML plus everything the surrounding page
- * needs — table of contents, counts — so nothing has to parse the source twice.
+ * needs, table of contents, counts, so nothing has to parse the source twice.
  *
  * A fresh `Marked` instance per call keeps heading slugs and footnote numbering
  * from leaking between concurrently rendered posts.

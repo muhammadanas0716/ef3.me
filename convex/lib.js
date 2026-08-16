@@ -46,7 +46,7 @@ export function publicPost(doc) {
   };
 }
 
-/** Listing payload — no `content`, so index pages stay small. */
+/** Listing payload: no `content`, so index pages stay small. */
 export function postSummary(doc) {
   const { content, ...rest } = publicPost(doc);
   return rest;

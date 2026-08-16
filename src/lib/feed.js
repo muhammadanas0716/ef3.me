@@ -20,8 +20,8 @@ export const cdata = (value) => `<![CDATA[${String(value ?? '').replace(/]]>/g, 
 /**
  * Loads the latest posts with their bodies already rendered to HTML.
  *
- * All three feeds are full-text — a reader should never have to click through
- * just to see what the post says — and all three share this one query, so
+ * All three feeds are full-text: a reader should never have to click through
+ * just to see what the post says, and all three share this one query, so
  * adding a format costs a file, not a round trip per item.
  */
 export async function feedItems() {
@@ -37,7 +37,7 @@ export async function feedItems() {
 
 export function feedMeta(items) {
   return {
-    title: `${site.name} — ${site.blogTitle}`,
+    title: `${site.name}, ${site.blogTitle}`,
     description: site.blogDescription,
     home: absoluteUrl('/blog'),
     updated: new Date(items[0]?.updatedAt ?? items[0]?.publishedAt ?? Date.now()).toISOString(),

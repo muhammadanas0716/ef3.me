@@ -6,12 +6,12 @@ const tools = [
   { action: 'prefix', arg: '## ', label: 'H2', title: 'Heading 2' },
   { action: 'prefix', arg: '### ', label: 'H3', title: 'Heading 3' },
   { sep: true },
-  { action: 'wrap', arg: '**', label: 'B', title: 'Bold — ⌘B', bold: true },
-  { action: 'wrap', arg: '*', label: 'I', title: 'Italic — ⌘I', italic: true },
+  { action: 'wrap', arg: '**', label: 'B', title: 'Bold, ⌘B', bold: true },
+  { action: 'wrap', arg: '*', label: 'I', title: 'Italic, ⌘I', italic: true },
   { action: 'wrap', arg: '~~', label: 'S', title: 'Strikethrough', strike: true },
-  { action: 'wrap', arg: '`', label: '‹›', title: 'Inline code — ⌘E' },
+  { action: 'wrap', arg: '`', label: '‹›', title: 'Inline code, ⌘E' },
   { sep: true },
-  { action: 'link', label: 'link', title: 'Link — ⌘K' },
+  { action: 'link', label: 'link', title: 'Link, ⌘K' },
   { action: 'image', label: 'image', title: 'Upload an image' },
   { action: 'embed', label: 'embed', title: 'Embed a video or link card' },
   { sep: true },
@@ -26,14 +26,14 @@ const tools = [
   { action: 'callout', label: 'note', title: 'Callout' },
   { action: 'table', label: 'table', title: 'Table' },
   { action: 'footnote', label: 'fn', title: 'Footnote' },
-  { action: 'rule', label: '—', title: 'Horizontal rule' },
+  { action: 'rule', label: ', ', title: 'Horizontal rule' },
 ];
 ---
 
 <div class="editor" id="editor" data-convex-ready={String(convexReady)}>
   {!convexReady && (
     <p class="warning mono">
-      CONVEX_URL is not set — saving will fail. Run <code>pnpm convex:dev</code> once, then restart.
+      CONVEX_URL is not set, saving will fail. Run <code>pnpm convex:dev</code> once, then restart.
     </p>
   )}
 
@@ -48,8 +48,8 @@ const tools = [
     <div class="bar-group right">
       <span id="save-state" class="mono dim" aria-live="polite"></span>
       <button type="button" class="ghost" data-panel="meta" title="Post details">details</button>
-      <button type="button" class="solid" id="btn-save" title="Save — ⌘S">save</button>
-      <button type="button" class="publish" id="btn-publish" title="Publish — ⌘⏎">publish</button>
+      <button type="button" class="solid" id="btn-save" title="Save, ⌘S">save</button>
+      <button type="button" class="publish" id="btn-publish" title="Publish, ⌘⏎">publish</button>
       {/* Icon buttons, paired: the glyphs are decorative, each button is
           named by its aria-label. */}
       <span class="icon-pair">
@@ -189,7 +189,7 @@ const tools = [
       </label>
 
       <div class="panel-actions">
-        <button type="button" class="solid" id="btn-save-panel" title="Save — ⌘S">save</button>
+        <button type="button" class="solid" id="btn-save-panel" title="Save, ⌘S">save</button>
         <a class="ghost" id="btn-view" href="#" target="_blank" rel="noopener">view post ↗</a>
       </div>
 
@@ -274,7 +274,7 @@ const tools = [
       ...options,
     });
     if (response.status === 401) {
-      say('Session expired — reloading.', 'bad');
+      say('Session expired, reloading.', 'bad');
       setTimeout(() => window.location.reload(), 900);
       throw new Error('unauthorised');
     }
@@ -338,11 +338,11 @@ const tools = [
       localStorage.setItem(
         draftKey(),
         // `id` and `notifiedAt` ride along so a restored draft stays attached
-        // to its post — without them, restoring turns an edit into a create.
+        // to its post, without them, restoring turns an edit into a create.
         JSON.stringify({ ...readForm(), id: state.id, notifiedAt: state.notifiedAt, at: Date.now() }),
       );
     } catch {
-      /* storage full or blocked — the server save is the real one */
+      /* storage full or blocked: the server save is the real one */
     }
   }, 600);
 
@@ -410,8 +410,8 @@ const tools = [
     button.title = published
       ? 'Move back to draft'
       : state.notifiedAt
-        ? 'Publish — ⌘⏎'
-        : 'Publish and email subscribers — ⌘⏎';
+        ? 'Publish, ⌘⏎'
+        : 'Publish and email subscribers, ⌘⏎';
   }
 
   function refresh() {
@@ -444,7 +444,7 @@ const tools = [
 
       state.id = data.id;
       if (data.notified) state.notifiedAt = Date.now();
-      // The server owns derived fields — mirror them back into the form.
+      // The server owns derived fields, mirror them back into the form.
       $('f-slug').value = data.post.slug;
       $('f-excerpt').value = data.post.excerpt;
       clearDraft();
@@ -452,7 +452,7 @@ const tools = [
       refresh();
 
       if (!silent) {
-        // Report the newsletter honestly — it only fires on a first publish.
+        // Report the newsletter honestly, it only fires on a first publish.
         const n = data.notified;
         const mailed = n?.sent ? ` Emailed ${n.sent} subscriber${n.sent === 1 ? '' : 's'}.` : '';
         const failed = n?.failed ? ` ${n.failed} failed.` : '';
@@ -580,7 +580,7 @@ const tools = [
     },
     embed: () => {
       // A URL alone on its own line is what the renderer turns into an embed.
-      const url = prompt('Paste a URL to embed (YouTube, Vimeo, Loom, Spotify, CodePen — anything else becomes a link card):');
+      const url = prompt('Paste a URL to embed (YouTube, Vimeo, Loom, Spotify, CodePen, anything else becomes a link card):');
       if (url?.trim()) insertBlock(`${url.trim()}\n`);
     },
   };
@@ -669,7 +669,7 @@ const tools = [
   /**
    * A filename is a poor source of alt text, so only use it when it actually
    * says something. Words like "image" or "screenshot" are worse than useless
-   * in an alt attribute — a screen reader already announces the element as an
+   * in an alt attribute, a screen reader already announces the element as an
    * image, so repeating it is the "redundant alt" accessibility failure.
    * When nothing meaningful survives, return '' and prompt for real alt text.
    */
@@ -744,7 +744,7 @@ const tools = [
       } else {
         const alt = altFromFilename(file.name);
         insertBlock(`![${alt}](${url})\n`);
-        if (!alt) say('Image added — write alt text in the brackets.', 'warn');
+        if (!alt) say('Image added, write alt text in the brackets.', 'warn');
       }
     }
   }
@@ -799,7 +799,7 @@ const tools = [
 
   /**
    * Panels slide rather than appear. `hidden` can't be transitioned, so the
-   * open state is a class and the closed state stays in the DOM — marked
+   * open state is a class and the closed state stays in the DOM, marked
    * `inert` so it is neither focusable nor readable by a screen reader while
    * it is off-screen.
    */
@@ -902,7 +902,7 @@ const tools = [
    * through the details panel for a dropdown.
    *
    * The first publish also emails every confirmed subscriber, which is not
-   * undoable — so that specific case asks first. Re-publishing something that
+   * undoable, so that specific case asks first. Re-publishing something that
    * has already been announced doesn't ask, because nothing is sent.
    */
   async function togglePublished() {
@@ -983,7 +983,7 @@ const tools = [
   });
 
   // The slug follows the title until it is edited by hand, and never for a
-  // post that already exists — changing a live URL should be deliberate.
+  // post that already exists, changing a live URL should be deliberate.
   let slugTouched = false;
   $('f-slug').addEventListener('input', () => (slugTouched = true));
 
@@ -1076,8 +1076,7 @@ const tools = [
     box-shadow: 0 1px 0 var(--color-accent);
   }
 
-  button,
-  .ghost {
+  button.ghost {
     font-family: var(--font-mono);
     font-size: 0.75rem;
     cursor: pointer;

@@ -28,7 +28,7 @@ export function convex() {
 
 export const isConvexConfigured = Boolean(CONVEX_URL);
 
-/** The shared secret that authorises writes. Server-side only — never ship it. */
+/** The shared secret that authorises writes. Server-side only: never ship it. */
 export function writeToken() {
   const token = env('WRITE_TOKEN');
   if (!token) throw new Error('WRITE_TOKEN is not set.');

@@ -25,7 +25,7 @@ const [{ html, toc }, neighbours, allPosts] = await Promise.all([
   safeQuery(api.posts.listPublished, {}, []),
 ]);
 
-// Internal links to posts on the same topic — good for readers, and the
+// Internal links to posts on the same topic, good for readers, and the
 // strongest signal a small site can send about which pages relate to which.
 const related = relatedPosts(post, allPosts);
 

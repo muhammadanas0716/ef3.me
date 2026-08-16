@@ -16,7 +16,7 @@ async function drop(token) {
 
 /**
  * One-click unsubscribe (RFC 8058). Gmail and Outlook POST here directly from
- * their own UI, with no cookie and no confirmation step — so it must work on
+ * their own UI, with no cookie and no confirmation step, so it must work on
  * the token alone and always answer 200, or the provider marks the sender as
  * not honouring unsubscribes.
  */

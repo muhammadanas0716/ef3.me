@@ -1,7 +1,7 @@
 /**
  * Official brand marks, extracted from `simple-icons` (which tracks each
  * company's own brand guidelines) so the logos ship with the site instead of
- * being hotlinked at runtime — no third-party request, no layout shift, and
+ * being hotlinked at runtime: no third-party request, no layout shift, and
  * nothing breaks when someone reorganises their CDN.
  *
  * Regenerate with: node scripts/logos.mjs
