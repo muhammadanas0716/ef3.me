@@ -4,7 +4,14 @@ import { site } from '../../config.js';
 import { safeQuery } from '../../lib/convex.js';
 import { api } from '../../../convex/_generated/api.js';
 import { renderMarkdown, makeExcerpt } from '../../lib/markdown.js';
-import { breadcrumbSchema, formatDate, isoDate, ogUrl, postSchema } from '../../lib/seo.js';
+import {
+  breadcrumbSchema,
+  formatDate,
+  isoDate,
+  ogUrl,
+  postSchema,
+  relatedPosts,
+} from '../../lib/seo.js';
 
 const { slug } = Astro.params;
 const post = await safeQuery(api.posts.getBySlug, { slug }, null);
@@ -12,10 +19,15 @@ const post = await safeQuery(api.posts.getBySlug, { slug }, null);
 // Rewrite rather than returning a bare 404 so the reader gets the real page.
 if (!post) return Astro.rewrite('/404');
 
-const [{ html, toc }, neighbours] = await Promise.all([
+const [{ html, toc }, neighbours, allPosts] = await Promise.all([
   renderMarkdown(post.content),
   safeQuery(api.posts.neighbours, { slug }, { newer: null, older: null }),
+  safeQuery(api.posts.listPublished, {}, []),
 ]);
+
+// Internal links to posts on the same topic — good for readers, and the
+// strongest signal a small site can send about which pages relate to which.
+const related = relatedPosts(post, allPosts);
 
 const description = post.excerpt || makeExcerpt(post.content);
 const updated = post.updatedAt && post.publishedAt && post.updatedAt - post.publishedAt > 86_400_000;
@@ -33,6 +45,7 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
   publishedTime={isoDate(post.publishedAt)}
   modifiedTime={isoDate(post.updatedAt)}
   tags={post.tags}
+  section={post.series || post.tags[0]}
   schemas={[
     postSchema(post),
     breadcrumbSchema([
@@ -85,6 +98,20 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
       </p>
     )}
   </article>
+
+  {related.length > 0 && (
+    <aside class="related" aria-label="Related posts">
+      <h2 class="mono dim related-title">Related</h2>
+      <ul class="dash-list">
+        {related.map((item) => (
+          <li>
+            <a href={`/blog/${item.slug}`}>{item.title}</a>
+            <span class="dim mono"> {formatDate(item.publishedAt, { style: 'short' })}</span>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  )}
 
   <nav class="pager mono" aria-label="More posts">
     {neighbours.older && (
@@ -157,8 +184,22 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
     gap: 0.9rem;
   }
 
+  .related {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-rule);
+    font-size: 0.9375rem;
+  }
+
+  .related-title {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
   .pager {
-    margin-top: 3.5rem;
+    margin-top: 2.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--color-rule);
     display: grid;

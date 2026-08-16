@@ -1,12 +1,13 @@
 import { safeQuery } from '../lib/convex.js';
 import { api } from '../../convex/_generated/api.js';
-import { absoluteUrl } from '../lib/seo.js';
+import { absoluteUrl, ogUrl } from '../lib/seo.js';
+import { escapeXml } from '../lib/feed.js';
 
 const day = (ms) => new Date(ms).toISOString().slice(0, 10);
 
 export async function GET() {
   const [posts, tags] = await Promise.all([
-    safeQuery(api.posts.sitemapEntries, {}, []),
+    safeQuery(api.posts.listPublished, {}, []),
     safeQuery(api.posts.tagCounts, {}, []),
   ]);
 
@@ -20,6 +21,9 @@ export async function GET() {
       lastmod: day(post.updatedAt || post.publishedAt),
       changefreq: 'monthly',
       priority: '0.8',
+      // Declaring the image gets the card into Google Images and improves the
+      // odds of a thumbnail appearing next to the result.
+      image: { url: post.coverImage || ogUrl(post.slug), title: post.title },
     })),
     ...tags.map((entry) => ({
       loc: absoluteUrl(`/tags/${encodeURIComponent(entry.tag)}`),
@@ -30,11 +34,26 @@ export async function GET() {
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls
-  .map(
-    ({ loc, lastmod, changefreq, priority }) =>
-      `  <url><loc>${loc}</loc><lastmod>${lastmod}</lastmod><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`,
+  .map(({ loc, lastmod, changefreq, priority, image }) =>
+    [
+      '  <url>',
+      `    <loc>${loc}</loc>`,
+      `    <lastmod>${lastmod}</lastmod>`,
+      `    <changefreq>${changefreq}</changefreq>`,
+      `    <priority>${priority}</priority>`,
+      ...(image
+        ? [
+            '    <image:image>',
+            `      <image:loc>${escapeXml(image.url)}</image:loc>`,
+            `      <image:title>${escapeXml(image.title)}</image:title>`,
+            '    </image:image>',
+          ]
+        : []),
+      '  </url>',
+    ].join('\n'),
   )
   .join('\n')}
 </urlset>
