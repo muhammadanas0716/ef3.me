@@ -111,21 +111,28 @@ function deny(status, error) {
  * ourselves. A mismatched `Origin` is always refused; an absent one is allowed
  * so scripting against your own API from a terminal still works.
  */
-function sameOrigin({ request, url }) {
-  const origin = request.headers.get('origin');
+function sameOrigin(context) {
+  const origin = context.request.headers.get('origin');
   if (!origin) return true;
   try {
-    return new URL(origin).host === url.host;
+    return new URL(origin).host === context.url.host;
   } catch {
     return false;
   }
 }
 
 /**
- * Guard for every editor endpoint. Takes the Astro API context and returns a
- * `Response` to send straight back, or `null` when the caller may proceed.
+ * Guard for every editor endpoint. Takes the whole Astro API context — not
+ * just `cookies` — and returns a `Response` to send straight back, or `null`
+ * when the caller may proceed.
  */
 export function requireAuth(context) {
+  // Handed the wrong thing (e.g. just `cookies`), this must fail closed and
+  // say so, rather than throwing a TypeError that surfaces as a vague 500.
+  if (!context?.request || !context?.url || !context?.cookies) {
+    console.error('[auth] requireAuth() needs the full API context, got:', typeof context);
+    return deny(500, 'Server misconfigured.');
+  }
   if (!sameOrigin(context)) return deny(403, 'Cross-origin request refused.');
   if (!isAuthed(context.cookies)) return deny(401, 'Not authorised.');
   return null;

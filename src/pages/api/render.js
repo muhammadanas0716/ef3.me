@@ -8,12 +8,12 @@ export const prerender = false;
  * The editor's preview renders through the exact same pipeline as the live
  * post, so what you see while writing is what actually ships.
  */
-export async function POST({ request, cookies }) {
-  const denied = requireAuth(cookies);
+export async function POST(context) {
+  const denied = requireAuth(context);
   if (denied) return denied;
 
   return handle(async () => {
-    const { markdown = '' } = await request.json().catch(() => ({}));
+    const { markdown = '' } = await context.request.json().catch(() => ({}));
     const { html, toc } = await renderMarkdown(markdown);
     return json({
       html,

@@ -1,6 +1,6 @@
 {
-  "name": "Effie Labs",
-  "short_name": "Effie Labs",
+  "name": "ef3",
+  "short_name": "ef3",
   "description": "A working journal of machine learning, deep learning and data science.",
   "start_url": "/",
   "display": "minimal-ui",

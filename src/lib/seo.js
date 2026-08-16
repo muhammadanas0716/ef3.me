@@ -58,6 +58,9 @@ export function personSchema() {
     '@type': 'Person',
     '@id': `${site.url}/#person`,
     name: site.name,
+    // The name I go by, plus the legal one — `alternateName` is how you tell a
+    // search engine that "Effie" and "Muhammad Anas" are the same person.
+    alternateName: site.legalName ? [site.legalName, site.shortName] : undefined,
     url: site.url,
     description: site.description,
     email: site.email ? `mailto:${site.email}` : undefined,

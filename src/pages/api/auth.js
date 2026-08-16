@@ -3,8 +3,14 @@ import { handle, json } from '../../lib/post.js';
 
 export const prerender = false;
 
-export async function POST({ request, cookies, clientAddress }) {
+export async function POST({ request, cookies, clientAddress, url }) {
   return handle(async () => {
+    // Same-origin only: nothing off-site should be able to drive the PIN form.
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).host !== url.host) {
+      return json({ error: 'Cross-origin request refused.' }, 403);
+    }
+
     const { pin } = await request.json().catch(() => ({}));
 
     const limit = rateLimit(clientAddress ?? 'unknown');

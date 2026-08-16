@@ -33,6 +33,19 @@ export default defineConfig({
     imageService: true,
     maxDuration: 30,
   }),
+  security: {
+    // Astro's blanket check rejects *any* cross-site form-ish POST, which
+    // would break RFC 8058 one-click unsubscribe — Gmail POSTs to it from
+    // their own servers with `application/x-www-form-urlencoded`, and a
+    // sender that refuses those gets penalised.
+    //
+    // CSRF is handled per route instead: `requireAuth()` enforces same-origin
+    // on every editor endpoint, and /api/subscribe does its own check. The
+    // only deliberately open endpoint is /api/unsubscribe, which is safe —
+    // it is idempotent and authenticated by an unguessable per-subscriber
+    // token, not by a cookie.
+    checkOrigin: false,
+  },
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'hover',

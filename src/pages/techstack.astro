@@ -1,0 +1,177 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../config.js';
+import { techstack, typefaces } from '../lib/techstack.js';
+import { absoluteUrl, breadcrumbSchema } from '../lib/seo.js';
+
+const description =
+  'Every piece of software this site is built from — Astro, Convex, Vercel, Resend, KaTeX, Shiki — what each one does and why it was chosen.';
+
+/**
+ * A little structured data of its own: each entry is a real, named piece of
+ * software, so the page can be understood as a list rather than as prose.
+ */
+const itemList = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: `Tech stack — ${site.shortName}`,
+  url: absoluteUrl('/techstack'),
+  numberOfItems: techstack.length,
+  itemListElement: techstack.map((tool, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    item: {
+      '@type': 'SoftwareApplication',
+      name: tool.name,
+      url: tool.url,
+      applicationCategory: 'DeveloperApplication',
+      description: tool.role,
+    },
+  })),
+};
+
+Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=604800');
+---
+
+<Base
+  title="Tech stack"
+  description={description}
+  canonical="/techstack"
+  wide
+  schemas={[
+    itemList,
+    breadcrumbSchema([
+      { name: 'Home', href: '/' },
+      { name: 'Tech stack', href: '/techstack' },
+    ]),
+  ]}
+>
+  <h1>Tech stack</h1>
+  <p class="lede">
+    What this site runs on, and why. Nothing here is load-bearing for anyone but me — but people
+    ask, so here it is.
+  </p>
+
+  <ul class="stack">
+    {techstack.map((tool) => (
+      <li class="tool">
+        <div class="head">
+          {/*
+            Brand marks are inlined, so there is no request and no reflow.
+            They are also purely decorative — the tool's name sits right next
+            to them in text — so they are hidden from assistive tech rather
+            than labelled. Labelling them would make a screen reader announce
+            "KaTeX logo, KaTeX, Typesets the mathematics".
+          */}
+          {tool.mark ? (
+            <svg
+              class="mark"
+              aria-hidden="true"
+              focusable="false"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              style={`color:${tool.mark.hex}`}
+            >
+              <path d={tool.mark.path} fill="currentColor" />
+            </svg>
+          ) : (
+            <img class="mark" src={tool.image} alt="" width="18" height="18" loading="lazy" />
+          )}
+
+          <a class="name" href={tool.url} target="_blank" rel="noopener noreferrer">{tool.name}</a>
+          <span class="role dim">{tool.role}</span>
+        </div>
+        <p class="why">{tool.why}</p>
+      </li>
+    ))}
+  </ul>
+
+  <p class="type dim">
+    Set in
+    {typefaces.map((face, index) => (
+      <>
+        <a href={face.url} target="_blank" rel="noopener noreferrer">{face.name}</a>
+        <span> ({face.use}){index < typefaces.length - 1 ? ', ' : '.'}</span>
+      </>
+    ))}
+    Written in plain JavaScript, no TypeScript build step.
+  </p>
+</Base>
+
+<style>
+  h1 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.017em;
+  }
+
+  .lede {
+    margin-top: 0.6rem;
+    color: var(--color-ink-soft);
+    max-width: 30rem;
+  }
+
+  .stack {
+    list-style: none;
+    padding: 0;
+    margin: 2.5rem 0 0;
+    display: grid;
+    /* Two columns on anything with room; one on a phone. `minmax(0, 1fr)`
+       rather than `1fr` so a long word can't push a column wider. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 3rem;
+  }
+
+  @media (max-width: 46rem) {
+    .stack {
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+    }
+  }
+
+  .head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
+  }
+
+  .mark {
+    /* Nudged down so the mark sits on the text baseline, not above it. */
+    align-self: center;
+    translate: 0 1px;
+    flex-shrink: 0;
+  }
+
+  .name {
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+
+  .role {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .why {
+    margin-top: 0.35rem;
+    padding-left: 1.625rem;
+    color: var(--color-ink-soft);
+    font-size: 0.9375rem;
+  }
+
+  .type {
+    margin-top: 3.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-rule);
+    font-size: 0.875rem;
+    max-width: 30rem;
+  }
+
+  @media (max-width: 30rem) {
+    .why {
+      padding-left: 0;
+    }
+  }
+</style>

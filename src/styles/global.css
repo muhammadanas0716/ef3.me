@@ -121,6 +121,11 @@
   padding-block: clamp(3rem, 7vh, 5.25rem) 5rem;
 }
 
+/* For pages that lay out in columns instead of one line of prose. */
+.wrap.wide {
+  max-width: 52rem;
+}
+
 .mono {
   font-family: var(--font-mono);
   font-size: 0.8125rem;

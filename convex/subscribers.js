@@ -84,6 +84,25 @@ export const listActive = query({
   },
 });
 
+/**
+ * Hard-deletes an address. `unsubscribe` is the normal path — it keeps the
+ * row so a re-subscribe is recognised — but a genuine erasure request (or a
+ * test address) needs the record gone entirely.
+ */
+export const remove = mutation({
+  args: { token: v.string(), email: v.string() },
+  handler: async (ctx, { token, email }) => {
+    assertWriter(token);
+    const doc = await ctx.db
+      .query('subscribers')
+      .withIndex('by_email', (q) => q.eq('email', email.trim().toLowerCase()))
+      .unique();
+    if (!doc) return false;
+    await ctx.db.delete(doc._id);
+    return true;
+  },
+});
+
 export const counts = query({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {

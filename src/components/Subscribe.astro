@@ -1,120 +1,134 @@
 ---
 /**
- * A quiet "subscribe" link that opens a small modal.
+ * A quiet "subscribe" link that expands an email field underneath it.
  *
- * Built on a native <dialog>, which gives focus trapping, Escape-to-close,
- * inert background and correct ARIA for free — no library, no framework.
+ * No modal and no overlay — clicking toggles a disclosure that grows into
+ * place. The height animation is pure CSS (`grid-template-rows: 0fr → 1fr`),
+ * which animates smoothly without anyone having to measure the element, so
+ * the only JavaScript here is the toggle and the fetch.
  */
 const { source = 'blog' } = Astro.props;
 ---
 
-<button type="button" class="subscribe-trigger mono" data-subscribe-open>subscribe</button>
-
-<dialog id="subscribe-dialog" aria-labelledby="subscribe-heading">
-  <form method="dialog" class="close-form">
-    <button type="submit" class="close mono" aria-label="Close">esc</button>
-  </form>
-
-  <h2 id="subscribe-heading">New posts, by email.</h2>
-  <p class="blurb">
-    A short note when something goes up — the topic, a line about it, and a link. Nothing else,
-    and one click to leave.
+<div class="subscribe" data-subscribe>
+  <p class="top mono dim">
+    <button
+      type="button"
+      class="trigger mono"
+      aria-expanded="false"
+      aria-controls="subscribe-panel"
+      data-toggle
+    >
+      subscribe
+    </button>
+    <!-- Anything else that belongs on this line, e.g. the feed link. -->
+    <slot />
   </p>
 
-  <form id="subscribe-form" novalidate data-source={source}>
-    <label class="sr-only" for="subscribe-email">Email address</label>
-    <div class="row">
-      <input
-        id="subscribe-email"
-        name="email"
-        type="email"
-        inputmode="email"
-        autocomplete="email"
-        placeholder="you@example.com"
-        spellcheck="false"
-        required
-      />
-      <button type="submit">Subscribe</button>
+  <div class="panel" id="subscribe-panel" data-panel>
+    <div class="panel-inner">
+      <form data-form novalidate data-source={source}>
+        <label class="sr-only" for="subscribe-email">Email address</label>
+        <div class="row">
+          <input
+            id="subscribe-email"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            spellcheck="false"
+            required
+          />
+          <button type="submit">→</button>
+        </div>
+      </form>
+      <p class="note mono" data-note role="status" aria-live="polite">
+        New posts only — the topic, a line about it, and a link. One click to leave.
+      </p>
     </div>
-    <p class="mono note" id="subscribe-note" role="status" aria-live="polite"></p>
-  </form>
-</dialog>
+  </div>
+</div>
 
 <script>
-  const dialog = document.getElementById('subscribe-dialog');
-  const form = document.getElementById('subscribe-form');
-  const input = document.getElementById('subscribe-email');
-  const note = document.getElementById('subscribe-note');
-  const submit = form.querySelector('button[type="submit"]');
+  document.querySelectorAll('[data-subscribe]').forEach((root) => {
+    const toggle = root.querySelector('[data-toggle]');
+    const panel = root.querySelector('[data-panel]');
+    const form = root.querySelector('[data-form]');
+    const input = root.querySelector('input');
+    const note = root.querySelector('[data-note]');
+    const submit = form.querySelector('button[type="submit"]');
 
-  function setNote(message, tone = '') {
-    note.textContent = message;
-    note.className = `mono note ${tone}`;
-  }
+    const setNote = (message, tone = '') => {
+      note.textContent = message;
+      note.className = `note mono ${tone}`;
+    };
 
-  document.querySelectorAll('[data-subscribe-open]').forEach((trigger) => {
-    trigger.addEventListener('click', () => {
-      setNote('');
-      form.hidden = false;
-      dialog.showModal();
-      input.focus();
+    toggle.addEventListener('click', () => {
+      const open = root.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', String(open));
+      // Focus only once the panel has finished growing, so the browser
+      // doesn't scroll to a box that is still mid-animation.
+      if (open) setTimeout(() => input.focus(), 180);
     });
-  });
 
-  // Clicking the backdrop closes it: outside the dialog box means outside its
-  // bounding rect, since the backdrop is part of the dialog element itself.
-  dialog.addEventListener('click', (event) => {
-    if (event.target !== dialog) return;
-    const box = dialog.getBoundingClientRect();
-    const outside =
-      event.clientX < box.left ||
-      event.clientX > box.right ||
-      event.clientY < box.top ||
-      event.clientY > box.bottom;
-    if (outside) dialog.close();
-  });
+    // Escape closes it, matching what the modal used to do.
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !root.classList.contains('is-open')) return;
+      root.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const email = input.value.trim();
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = input.value.trim();
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      setNote('That doesn’t look like an email address.', 'bad');
-      input.focus();
-      return;
-    }
-
-    submit.disabled = true;
-    setNote('Sending…');
-
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, source: form.dataset.source }),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        // Replace the form entirely — there is nothing left to do here.
-        form.hidden = true;
-        setNote('');
-        dialog.querySelector('.blurb').textContent =
-          'Check your inbox and click the confirmation link. That’s the last step.';
-        dialog.querySelector('h2').textContent = 'Almost there.';
-      } else {
-        setNote(data.error ?? 'Something went wrong. Try again?', 'bad');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        setNote('That doesn’t look like an email address.', 'bad');
+        input.focus();
+        return;
       }
-    } catch {
-      setNote('Network error. Try again?', 'bad');
-    } finally {
-      submit.disabled = false;
-    }
+
+      submit.disabled = true;
+      setNote('Sending…');
+
+      try {
+        const response = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email, source: form.dataset.source }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.ok) {
+          // Nothing left to do here — retire the form and leave the message.
+          form.remove();
+          setNote('Check your inbox and click the confirmation link.', 'good');
+        } else {
+          setNote(data.error ?? 'Something went wrong. Try again?', 'bad');
+        }
+      } catch {
+        setNote('Network error. Try again?', 'bad');
+      } finally {
+        submit.disabled = false;
+      }
+    });
   });
 </script>
 
 <style>
-  .subscribe-trigger {
+  .subscribe {
+    display: block;
+  }
+
+  .top {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+
+  .trigger {
     background: none;
     border: 0;
     padding: 0;
@@ -129,105 +143,39 @@ const { source = 'blog' } = Astro.props;
     transition: text-decoration-thickness 90ms ease;
   }
 
-  .subscribe-trigger:hover {
+  .trigger:hover,
+  .subscribe.is-open .trigger {
     text-decoration-thickness: 2px;
   }
 
-  dialog {
-    border: 1px solid var(--color-rule);
-    border-radius: 6px;
-    background: var(--color-paper);
-    color: var(--color-ink);
-    padding: 1.75rem;
-    width: min(26rem, calc(100vw - 2rem));
-    box-shadow: 0 24px 60px -32px rgba(28, 25, 23, 0.5);
-    position: relative;
-  }
-
-  dialog::backdrop {
-    background: color-mix(in srgb, #1c1917 34%, transparent);
-    backdrop-filter: blur(2px);
-  }
-
-  /* Fade + lift in. `allow-discrete` is what lets a display:none element
-     animate on open without any JavaScript timing. */
-  dialog,
-  dialog::backdrop {
+  /* The disclosure. A 0fr → 1fr grid row animates height without JS having
+     to measure anything, and stays correct if the content reflows. */
+  .panel {
+    display: grid;
+    grid-template-rows: 0fr;
     opacity: 0;
     transition:
-      opacity 180ms ease,
-      translate 180ms ease,
-      overlay 180ms allow-discrete,
-      display 180ms allow-discrete;
+      grid-template-rows 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 160ms ease,
+      margin-top 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    margin-top: 0;
   }
 
-  dialog {
-    translate: 0 6px;
-  }
-
-  dialog[open],
-  dialog[open]::backdrop {
+  .subscribe.is-open .panel {
+    grid-template-rows: 1fr;
     opacity: 1;
+    margin-top: 0.85rem;
   }
 
-  dialog[open] {
-    translate: 0 0;
-  }
-
-  @starting-style {
-    dialog[open],
-    dialog[open]::backdrop {
-      opacity: 0;
-    }
-    dialog[open] {
-      translate: 0 6px;
-    }
-  }
-
-  .close-form {
-    position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
-    margin: 0;
-  }
-
-  .close {
-    background: none;
-    border: 0;
-    cursor: pointer;
-    color: var(--color-ink-faint);
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    padding: 0.25rem 0.4rem;
-    border-radius: 3px;
-  }
-
-  .close:hover {
-    color: var(--color-ink);
-    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  }
-
-  h2 {
-    font-size: 1.0625rem;
-    font-weight: 650;
-    letter-spacing: -0.017em;
-    padding-right: 2.5rem;
-  }
-
-  .blurb {
-    margin-top: 0.6rem;
-    color: var(--color-ink-soft);
-    font-size: 0.9375rem;
-    line-height: 1.6;
-  }
-
-  #subscribe-form {
-    margin-top: 1.25rem;
+  .panel-inner {
+    overflow: hidden;
+    min-height: 0;
   }
 
   .row {
     display: flex;
     gap: 0.4rem;
+    max-width: 22rem;
   }
 
   input {
@@ -235,11 +183,12 @@ const { source = 'blog' } = Astro.props;
     min-width: 0;
     font-family: var(--font-sans);
     font-size: 0.9375rem;
-    padding: 0.55rem 0.7rem;
+    padding: 0.5rem 0.7rem;
     background: #fffaf1;
     border: 1px solid var(--color-rule);
     border-radius: 4px;
     color: var(--color-ink);
+    transition: border-color 120ms ease;
   }
 
   input::placeholder {
@@ -253,14 +202,13 @@ const { source = 'blog' } = Astro.props;
 
   button[type='submit'] {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.85rem;
     background: var(--color-ink);
     color: var(--color-paper);
     border: 0;
     border-radius: 4px;
     cursor: pointer;
-    white-space: nowrap;
     transition: background 120ms ease;
   }
 
@@ -274,13 +222,18 @@ const { source = 'blog' } = Astro.props;
   }
 
   .note {
-    margin-top: 0.6rem;
-    min-height: 1.1em;
-    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.6875rem;
     color: var(--color-ink-faint);
+    max-width: 24rem;
+    line-height: 1.55;
   }
 
   .note.bad {
     color: #9a3412;
+  }
+
+  .note.good {
+    color: #15803d;
   }
 </style>

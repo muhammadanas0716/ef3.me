@@ -4,7 +4,12 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import { site } from '../config.js';
 
-const { bare = false, ...head } = Astro.props;
+/**
+ * `bare` drops the reading column entirely (the editor fills the viewport).
+ * `wide` keeps it but widens it, for pages that lay out in columns rather
+ * than as a single line of prose.
+ */
+const { bare = false, wide = false, ...head } = Astro.props;
 ---
 
 <!doctype html>
@@ -18,7 +23,7 @@ const { bare = false, ...head } = Astro.props;
     {bare ? (
       <slot />
     ) : (
-      <div class="wrap">
+      <div class:list={['wrap', { wide }]}>
         <Header />
         <main id="main">
           <slot />

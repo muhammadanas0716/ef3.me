@@ -3,10 +3,12 @@
  * templates.
  */
 export const site = {
-  name: 'Muhammad Anas',
+  name: 'Effie',
+  /** Legal/full name, used in structured data alongside the one I go by. */
+  legalName: 'Muhammad Anas',
   /** Shown in <title> suffixes, feeds and structured data. */
-  shortName: 'Effie Labs',
-  url: (import.meta.env.PUBLIC_SITE_URL || 'https://effielabs.com').replace(/\/$/, ''),
+  shortName: 'ef3',
+  url: (import.meta.env.PUBLIC_SITE_URL || 'https://ef3.me').replace(/\/$/, ''),
   locale: 'en_US',
   lang: 'en',
   /** The home page <title> suffix. Keep it under ~50 characters. */
@@ -30,9 +32,10 @@ export const site = {
   affiliation: { name: 'NYU Abu Dhabi', url: 'https://nyuad.nyu.edu' },
 };
 
-/** Top-right links on every page. First one gets the little bird glyph. */
+/** Top-right links, on every page. */
 export const nav = [
   { label: 'journal', href: '/blog' },
+  { label: 'stack', href: '/techstack' },
   { label: 'github', href: 'https://github.com/muhammadanas0716' },
 ];
 
@@ -41,9 +44,10 @@ export const nav = [
  * all work exactly like they do in a post.
  */
 export const about = {
-  intro: `I'm a freshman at [NYU Abu Dhabi](https://nyuad.nyu.edu), studying computer science,
-economics and film. I'm mostly interested in machine learning and what it does to finance — and I
-learn in public, which is what [this journal](/blog) is.`,
+  intro: `I'm **Effie** — **ef3** is just a shorter way to write it, which is where *ef3.me* comes
+from. I'm a freshman at [NYU Abu Dhabi](https://nyuad.nyu.edu) studying computer science, economics
+and film, mostly interested in machine learning and what it does to finance. I learn in public,
+which is what [this journal](/blog) is.`,
   sections: [
     {
       heading: 'Currently',
@@ -63,5 +67,5 @@ learn in public, which is what [this journal](/blog) is.`,
   ],
   /** Optional. Path to an image in /public, or a full URL. */
   avatar: '',
-  signoff: '-- Anas',
+  signoff: '-- Effie',
 };

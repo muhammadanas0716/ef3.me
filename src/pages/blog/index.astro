@@ -39,11 +39,12 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
 
   <PostList posts={posts} empty="No posts yet. The first one is being written." />
 
-  <p class="feed mono dim">
-    <Subscribe source="blog" />
-    <span aria-hidden="true"> · </span>
-    <a href="/rss.xml">rss</a>
-  </p>
+  <div class="feed">
+    <Subscribe source="blog">
+      <span aria-hidden="true">&nbsp;·&nbsp;</span>
+      <a href="/rss.xml">rss</a>
+    </Subscribe>
+  </div>
 </Base>
 
 <style>

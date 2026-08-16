@@ -48,9 +48,27 @@ const tools = [
     <div class="bar-group right">
       <span id="save-state" class="mono dim" aria-live="polite"></span>
       <button type="button" class="ghost" data-panel="meta" title="Post details">details</button>
-      <button type="button" class="ghost" id="btn-new" title="New post">new</button>
       <button type="button" class="solid" id="btn-save" title="Save — ⌘S">save</button>
-      <button type="button" class="ghost" id="btn-lock" title="Lock the editor">lock</button>
+      <button type="button" class="publish" id="btn-publish" title="Publish — ⌘⏎">publish</button>
+      {/* Icon buttons, paired: the glyphs are decorative, each button is
+          named by its aria-label. */}
+      <span class="icon-pair">
+        <button type="button" class="ghost icon-button" id="btn-new" title="New post" aria-label="New post">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        <button type="button" class="ghost icon-button" id="btn-lock" title="Lock the editor" aria-label="Lock the editor">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+            <rect x="4" y="10.5" width="16" height="10.5" rx="2" />
+            <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+          </svg>
+        </button>
+      </span>
     </div>
   </header>
 
@@ -171,7 +189,13 @@ const tools = [
       </label>
 
       <div class="panel-actions">
+        <button type="button" class="solid" id="btn-save-panel" title="Save — ⌘S">save</button>
         <a class="ghost" id="btn-view" href="#" target="_blank" rel="noopener">view post ↗</a>
+      </div>
+
+      {/* Deliberately separated from save, so the destructive action is never
+          the one you hit by muscle memory. */}
+      <div class="panel-danger">
         <button type="button" class="danger" id="btn-delete">delete post</button>
       </div>
     </div>
@@ -207,6 +231,9 @@ const tools = [
     dirty: false,
     saving: false,
     coverTarget: false,
+    // Set once the newsletter has gone out, so the publish confirmation can
+    // tell the truth about whether this will email anyone.
+    notifiedAt: null,
   };
 
   /* ------------------------------------------------------------ utilities */
@@ -282,6 +309,7 @@ const tools = [
     $('f-publishedAt').value = toLocalInput(post?.publishedAt);
     source.value = post?.content ?? '';
     state.id = post?.id ?? null;
+    state.notifiedAt = post?.notifiedAt ?? null;
     // A freshly loaded post owns its slug again.
     slugTouched = Boolean(post);
     markClean();
@@ -307,7 +335,12 @@ const tools = [
 
   const saveDraft = debounce(() => {
     try {
-      localStorage.setItem(draftKey(), JSON.stringify({ ...readForm(), at: Date.now() }));
+      localStorage.setItem(
+        draftKey(),
+        // `id` and `notifiedAt` ride along so a restored draft stays attached
+        // to its post — without them, restoring turns an edit into a create.
+        JSON.stringify({ ...readForm(), id: state.id, notifiedAt: state.notifiedAt, at: Date.now() }),
+      );
     } catch {
       /* storage full or blocked — the server save is the real one */
     }
@@ -336,7 +369,15 @@ const tools = [
       clearDraft();
       return false;
     }
-    writeForm({ ...draft, tags: String(draft.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean) });
+    writeForm({
+      ...draft,
+      // Fall back to the post currently open, for drafts saved before this
+      // field existed. Losing the id here is what made a save collide with
+      // the post's own slug.
+      id: draft.id ?? state.id,
+      notifiedAt: draft.notifiedAt ?? state.notifiedAt,
+      tags: String(draft.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean),
+    });
     markDirty();
     return true;
   }
@@ -360,7 +401,21 @@ const tools = [
     }
   }, 350);
 
+  /** The publish button is a status toggle, so its label follows the status. */
+  function syncPublishButton() {
+    const published = $('f-status').value === 'published';
+    const button = $('btn-publish');
+    button.textContent = published ? 'unpublish' : 'publish';
+    button.classList.toggle('is-live', published);
+    button.title = published
+      ? 'Move back to draft'
+      : state.notifiedAt
+        ? 'Publish — ⌘⏎'
+        : 'Publish and email subscribers — ⌘⏎';
+  }
+
   function refresh() {
+    syncPublishButton();
     const slug = $('f-slug').value.trim() || slugify($('f-title').value);
     $('slug-view').textContent = slug ? `/blog/${slug}` : '';
     $('btn-view').href = slug ? `/blog/${slug}` : '#';
@@ -369,7 +424,7 @@ const tools = [
 
   /* ----------------------------------------------------------------- save */
 
-  async function save({ silent = false } = {}) {
+  async function save({ silent = false, verb } = {}) {
     if (state.saving) return;
     const body = readForm();
     if (!body.title) {
@@ -388,6 +443,7 @@ const tools = [
         : await apiFetch('/api/posts', { method: 'POST', body: JSON.stringify(body) });
 
       state.id = data.id;
+      if (data.notified) state.notifiedAt = Date.now();
       // The server owns derived fields — mirror them back into the form.
       $('f-slug').value = data.post.slug;
       $('f-excerpt').value = data.post.excerpt;
@@ -400,10 +456,8 @@ const tools = [
         const n = data.notified;
         const mailed = n?.sent ? ` Emailed ${n.sent} subscriber${n.sent === 1 ? '' : 's'}.` : '';
         const failed = n?.failed ? ` ${n.failed} failed.` : '';
-        say(
-          (body.status === 'published' ? 'Published.' : 'Saved as draft.') + mailed + failed,
-          failed ? 'warn' : 'good',
-        );
+        const done = verb ?? (body.status === 'published' ? 'Published.' : 'Saved as draft.');
+        say(done + mailed + failed, failed ? 'warn' : 'good');
       }
     } catch (error) {
       if (error.message !== 'unauthorised') {
@@ -557,6 +611,11 @@ const tools = [
         save();
         return;
       }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        togglePublished();
+        return;
+      }
       if (shortcuts[key] && !event.shiftKey) {
         event.preventDefault();
         shortcuts[key]();
@@ -606,6 +665,29 @@ const tools = [
   });
 
   /* --------------------------------------------------------------- upload */
+
+  /**
+   * A filename is a poor source of alt text, so only use it when it actually
+   * says something. Words like "image" or "screenshot" are worse than useless
+   * in an alt attribute — a screen reader already announces the element as an
+   * image, so repeating it is the "redundant alt" accessibility failure.
+   * When nothing meaningful survives, return '' and prompt for real alt text.
+   */
+  const REDUNDANT_ALT = /\b(image|images|img|photo|picture|pic|graphic|logo|icon|screenshot|screen shot|screen|shot|untitled|copy|final|new|export|download|file)\b/gi;
+
+  function altFromFilename(name) {
+    const cleaned = String(name)
+      .replace(/\.[^.]+$/, '')          // extension
+      .replace(/[-_]+/g, ' ')           // separators
+      .replace(/\bIMG\b|\bDSC\b/gi, '')  // camera prefixes
+      .replace(/\d{4}[-\s]?\d{2}[-\s]?\d{2}/g, '') // dates
+      .replace(/\b\d{3,}\b/g, '')        // long digit runs
+      .replace(REDUNDANT_ALT, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    // A single stray word or two characters isn't a description.
+    return cleaned.length >= 4 && /\s/.test(cleaned) ? cleaned : '';
+  }
 
   async function upload(file) {
     if (!file.type.startsWith('image/')) {
@@ -660,8 +742,9 @@ const tools = [
         state.coverTarget = false;
         markDirty();
       } else {
-        const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+        const alt = altFromFilename(file.name);
         insertBlock(`![${alt}](${url})\n`);
+        if (!alt) say('Image added — write alt text in the brackets.', 'warn');
       }
     }
   }
@@ -714,17 +797,28 @@ const tools = [
 
   /* ---------------------------------------------------------------- panels */
 
+  /**
+   * Panels slide rather than appear. `hidden` can't be transitioned, so the
+   * open state is a class and the closed state stays in the DOM — marked
+   * `inert` so it is neither focusable nor readable by a screen reader while
+   * it is off-screen.
+   */
+  function setPanel(panel, open) {
+    panel.classList.toggle('is-open', open);
+    panel.inert = !open;
+  }
+
   function openPanel(name) {
     document.querySelectorAll('.panel').forEach((panel) => {
-      panel.hidden = panel.id !== `panel-${name}`;
+      setPanel(panel, panel.id === `panel-${name}`);
     });
-    $('scrim').hidden = false;
+    $('scrim').classList.add('is-open');
     if (name === 'posts') loadPosts();
   }
 
   function closePanels() {
-    document.querySelectorAll('.panel').forEach((panel) => (panel.hidden = true));
-    $('scrim').hidden = true;
+    document.querySelectorAll('.panel').forEach((panel) => setPanel(panel, false));
+    $('scrim').classList.remove('is-open');
   }
 
   document.querySelectorAll('[data-panel]').forEach((button) => {
@@ -799,7 +893,47 @@ const tools = [
 
   /* --------------------------------------------------------------- actions */
 
-  $('btn-save').addEventListener('click', () => save());
+  for (const id of ['btn-save', 'btn-save-panel']) {
+    $(id).addEventListener('click', () => save());
+  }
+
+  /**
+   * Publish / unpublish in one action, so going live never means hunting
+   * through the details panel for a dropdown.
+   *
+   * The first publish also emails every confirmed subscriber, which is not
+   * undoable — so that specific case asks first. Re-publishing something that
+   * has already been announced doesn't ask, because nothing is sent.
+   */
+  async function togglePublished() {
+    if (state.saving) return;
+
+    if ($('f-status').value === 'published') {
+      if (!confirm('Move this post back to a draft? It disappears from the site and the feeds.')) return;
+      $('f-status').value = 'draft';
+      markDirty();
+      await save({ verb: 'Moved back to draft.' });
+      return;
+    }
+
+    if (!$('f-title').value.trim()) {
+      say('A title is required.', 'bad');
+      $('f-title').focus();
+      return;
+    }
+    if (!source.value.trim()) {
+      say('Nothing to publish yet.', 'bad');
+      source.focus();
+      return;
+    }
+    if (!state.notifiedAt && !confirm('Publish now? This goes live and emails your subscribers.')) return;
+
+    $('f-status').value = 'published';
+    markDirty();
+    await save();
+  }
+
+  $('btn-publish').addEventListener('click', togglePublished);
 
   $('btn-new').addEventListener('click', () => {
     if (state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
@@ -859,7 +993,7 @@ const tools = [
         $('f-slug').value = slugify($('f-title').value);
       }
       markDirty();
-      if (name === 'title' || name === 'slug') refresh();
+      if (name === 'title' || name === 'slug' || name === 'status') refresh();
     });
   }
 
@@ -969,6 +1103,45 @@ const tools = [
 
   .solid:hover {
     background: var(--color-accent-deep);
+  }
+
+  .publish {
+    background: var(--color-accent);
+    color: var(--color-ink);
+    padding-inline: 0.75rem;
+    font-weight: 500;
+  }
+
+  .publish:hover {
+    background: var(--color-accent-deep);
+    color: var(--color-paper);
+  }
+
+  /* Already live: demote it to an outline, since the action is now a retreat. */
+  .publish.is-live {
+    background: transparent;
+    border-color: var(--color-rule);
+    color: var(--color-ink-faint);
+    font-weight: 400;
+  }
+
+  .publish.is-live:hover {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    color: var(--color-ink);
+  }
+
+  /* Square hit area for text-free buttons, so the target stays comfortable. */
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    line-height: 0;
+    color: var(--color-ink-soft);
+  }
+
+  .icon-button:hover {
+    color: var(--color-ink);
   }
 
   .danger {
