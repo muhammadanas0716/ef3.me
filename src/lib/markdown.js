@@ -368,13 +368,20 @@ export function toPlainText(markdown) {
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+    // Inline maths counts as one token. Left as-is, a span like
+    // `$\mathbf{w}^T\mathbf{x}$` would score as several words and inflate
+    // the reading time on anything equation-heavy.
+    .replace(/\$(?!\s)[^$\n]+\$/g, ' x ')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^\s{0,3}>\s?/gm, '')
     .replace(/^\s{0,3}#{1,6}\s+/gm, '')
     .replace(/^\s{0,3}[-*+]\s+/gm, '')
     .replace(/[*_~]/g, '')
-    .replace(/<[^>]*>/g, '')
+    // Only real tags. A bare `<` (as in the maths `$z < 0$`) must not open
+    // a match, or everything up to the next `>` anywhere in the post is
+    // swallowed, which silently wrecks word counts and auto excerpts.
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
