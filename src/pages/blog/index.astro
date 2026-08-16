@@ -5,7 +5,7 @@ import Subscribe from '../../components/Subscribe.astro';
 import { site } from '../../config.js';
 import { safeQuery } from '../../lib/convex.js';
 import { api } from '../../../convex/_generated/api.js';
-import { blogSchema, breadcrumbSchema } from '../../lib/seo.js';
+import { blogSchema, breadcrumbSchema, itemListSchema } from '../../lib/seo.js';
 
 const posts = await safeQuery(api.posts.listPublished, {}, []);
 const tags = await safeQuery(api.posts.tagCounts, {}, []);
@@ -19,6 +19,7 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
   canonical="/blog"
   schemas={[
     blogSchema(posts),
+    itemListSchema(posts, { name: `${site.blogTitle} — all posts`, url: '/blog' }),
     breadcrumbSchema([
       { name: 'Home', href: '/' },
       { name: site.blogTitle, href: '/blog' },
