@@ -1,58 +1,40 @@
 import { site } from '../config.js';
-import { safeQuery } from '../lib/convex.js';
-import { api } from '../../convex/_generated/api.js';
-import { renderMarkdown } from '../lib/markdown.js';
-import { absoluteUrl, postUrl } from '../lib/seo.js';
-
-const escape = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-
-const cdata = (value) => `<![CDATA[${String(value ?? '').replace(/]]>/g, ']]&gt;')}]]>`;
+import { absoluteUrl } from '../lib/seo.js';
+import { cdata, escapeXml, feedHeaders, feedItems, feedMeta } from '../lib/feed.js';
 
 export async function GET() {
-  // Full-text feed: readers get the whole post, not a teaser. Bodies come back
-  // in the same round trip so the feed is one query, not one per item.
-  const posts = await safeQuery(api.posts.listPublished, { limit: 30, withContent: true }, []);
+  const items = await feedItems();
+  const meta = feedMeta(items);
 
-  const items = await Promise.all(
-    posts.map(async (post) => {
-      const { html } = await renderMarkdown(post.content);
-      return [
+  const body = items
+    .map((post) =>
+      [
         '    <item>',
-        `      <title>${escape(post.title)}</title>`,
-        `      <link>${postUrl(post.slug)}</link>`,
-        `      <guid isPermaLink="true">${postUrl(post.slug)}</guid>`,
+        `      <title>${escapeXml(post.title)}</title>`,
+        `      <link>${post.url}</link>`,
+        `      <guid isPermaLink="true">${post.url}</guid>`,
         `      <pubDate>${new Date(post.publishedAt ?? Date.now()).toUTCString()}</pubDate>`,
-        `      <description>${escape(post.excerpt)}</description>`,
-        `      <content:encoded>${cdata(html)}</content:encoded>`,
-        ...post.tags.map((tag) => `      <category>${escape(tag)}</category>`),
+        `      <description>${escapeXml(post.excerpt)}</description>`,
+        `      <content:encoded>${cdata(post.html)}</content:encoded>`,
+        ...post.tags.map((tag) => `      <category>${escapeXml(tag)}</category>`),
         '    </item>',
-      ].join('\n');
-    }),
-  );
+      ].join('\n'),
+    )
+    .join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>${escape(`${site.name} — ${site.blogTitle}`)}</title>
-    <link>${absoluteUrl('/blog')}</link>
-    <description>${escape(site.blogDescription)}</description>
+    <title>${escapeXml(meta.title)}</title>
+    <link>${meta.home}</link>
+    <description>${escapeXml(meta.description)}</description>
     <language>${site.lang}</language>
-    <lastBuildDate>${new Date(posts[0]?.publishedAt ?? Date.now()).toUTCString()}</lastBuildDate>
+    <lastBuildDate>${new Date(meta.updated).toUTCString()}</lastBuildDate>
     <atom:link href="${absoluteUrl('/rss.xml')}" rel="self" type="application/rss+xml" />
-${items.join('\n')}
+${body}
   </channel>
 </rss>
 `;
 
-  return new Response(xml, {
-    headers: {
-      'content-type': 'application/rss+xml; charset=utf-8',
-      'cache-control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
-    },
-  });
+  return new Response(xml, { headers: feedHeaders('application/rss+xml') });
 }

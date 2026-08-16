@@ -5,7 +5,10 @@ export function GET() {
 Allow: /
 Disallow: /write
 Disallow: /api/
+Disallow: /subscribe/
+Disallow: /unsubscribe
 
+# Feeds and the plain-text index for language models
 Sitemap: ${absoluteUrl('/sitemap.xml')}
 `;
 
