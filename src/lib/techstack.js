@@ -101,3 +101,17 @@ export const typefaces = [
   { name: 'Inter', url: 'https://rsms.me/inter/', use: 'body and headings' },
   { name: 'JetBrains Mono', url: 'https://www.jetbrains.com/lp/mono/', use: 'labels, code and metadata' },
 ];
+
+/**
+ * The whole palette. These are the actual custom properties from
+ * `src/styles/global.css` — if you change one there, change it here too.
+ */
+export const palette = [
+  { name: 'Paper', value: '#feeccf', token: '--color-paper', use: 'the background, everywhere' },
+  { name: 'Ink', value: '#1c1917', token: '--color-ink', use: 'body text and headings' },
+  { name: 'Ink soft', value: '#4a4137', token: '--color-ink-soft', use: 'secondary prose, excerpts' },
+  { name: 'Ink faint', value: '#857a6c', token: '--color-ink-faint', use: 'timestamps and labels' },
+  { name: 'Amber', value: '#f59e0b', token: '--color-accent', use: 'link underlines, bullets, the publish button' },
+  { name: 'Amber deep', value: '#b45309', token: '--color-accent-deep', use: 'hover states and small caps' },
+  { name: 'Rule', value: '#e0cfae', token: '--color-rule', use: 'hairlines and borders' },
+];

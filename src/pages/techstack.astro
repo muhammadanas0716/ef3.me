@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { site } from '../config.js';
-import { techstack, typefaces } from '../lib/techstack.js';
+import { techstack, typefaces, palette } from '../lib/techstack.js';
 import { absoluteUrl, breadcrumbSchema } from '../lib/seo.js';
 
 const description =
@@ -87,16 +87,31 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
     ))}
   </ul>
 
-  <p class="type dim">
-    Set in
-    {typefaces.map((face, index) => (
-      <>
-        <a href={face.url} target="_blank" rel="noopener noreferrer">{face.name}</a>
-        <span> ({face.use}){index < typefaces.length - 1 ? ', ' : '.'}</span>
-      </>
-    ))}
-    Written in plain JavaScript, no TypeScript build step.
-  </p>
+  <section class="closing">
+    <h2 class="mono dim section-title">Colours</h2>
+    <ul class="palette">
+      {palette.map((colour) => (
+        <li class="swatch">
+          {/* Decorative — the hex sits next to it in text. */}
+          <span class="chip" style={`background:${colour.value}`} aria-hidden="true"></span>
+          <span class="swatch-name">{colour.name}</span>
+          <code class="swatch-hex">{colour.value}</code>
+          <span class="swatch-use dim">{colour.use}</span>
+        </li>
+      ))}
+    </ul>
+
+    <p class="type dim">
+      Set in{' '}
+      {typefaces.map((face, index) => (
+        <>
+          <a href={face.url} target="_blank" rel="noopener noreferrer">{face.name}</a>
+          <span>{` (${face.use})${index < typefaces.length - 1 ? ', ' : '. '}`}</span>
+        </>
+      ))}
+      Written in plain JavaScript, no TypeScript build step.
+    </p>
+  </section>
 </Base>
 
 <style>
@@ -161,12 +176,72 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=3600, s
     font-size: 0.9375rem;
   }
 
-  .type {
+  .closing {
     margin-top: 3.5rem;
-    padding-top: 1.25rem;
+    padding-top: 1.5rem;
     border-top: 1px solid var(--color-rule);
+  }
+
+  .section-title {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  .palette {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 3rem;
+  }
+
+  .swatch {
+    display: grid;
+    /* Fixed name column so every hex lines up down the page. */
+    grid-template-columns: auto minmax(6rem, max-content) auto;
+    align-items: center;
+    gap: 0 0.55rem;
     font-size: 0.875rem;
-    max-width: 30rem;
+  }
+
+  .chip {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 3px;
+    /* Every swatch needs an outline — paper on paper is invisible otherwise. */
+    border: 1px solid color-mix(in srgb, var(--color-ink) 22%, transparent);
+  }
+
+  .swatch-name {
+    font-weight: 550;
+  }
+
+  .swatch-hex {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+  }
+
+  .swatch-use {
+    grid-column: 2 / -1;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .type {
+    margin-top: 2.5rem;
+    font-size: 0.875rem;
+    max-width: 34rem;
+  }
+
+  @media (max-width: 46rem) {
+    .palette {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 30rem) {

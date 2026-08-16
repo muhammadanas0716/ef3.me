@@ -3,7 +3,7 @@
  * templates.
  */
 export const site = {
-  name: 'Effie',
+  name: 'Muhammad Anas',
   /** Legal/full name, used in structured data alongside the one I go by. */
   legalName: 'Muhammad Anas',
   /** Shown in <title> suffixes, feeds and structured data. */
@@ -18,10 +18,10 @@ export const site = {
   /** Used on the blog index and in feed metadata. */
   blogTitle: 'Journal',
   blogDescription:
-    'Notes from the middle of learning: machine learning, deep learning, quantitative finance and university, written down the day I understand them.',
+    'Notes from the middle of learning: machine learning, deep learning, and any fun stuff I see along the way.',
   /** Twitter/X handle without the @, for Twitter card attribution. Empty = omitted. */
   twitter: '',
-  email: 'iam.muhammadanas0716@gmail.com',
+  email: 'ma10016@nyu.edu',
   /**
    * Profile URLs, emitted as schema.org `sameAs`. This is how search engines
    * tie the site to the same *person* across the web, so add every profile
@@ -44,8 +44,7 @@ export const nav = [
  * all work exactly like they do in a post.
  */
 export const about = {
-  intro: `I'm **Effie** — **ef3** is just a shorter way to write it, which is where *ef3.me* comes
-from. I'm a freshman at [NYU Abu Dhabi](https://nyuad.nyu.edu) studying computer science, economics
+  intro: `I'm **Muhammad Anas**, nickname's Effie and **ef3** is just a shorter way to write it. I'm a freshman at [NYU Abu Dhabi](https://nyuad.nyu.edu) studying computer science, economics
 and film, mostly interested in machine learning and what it does to finance. I learn in public,
 which is what [this journal](/blog) is.`,
   sections: [
@@ -53,15 +52,15 @@ which is what [this journal](/blog) is.`,
       heading: 'Currently',
       items: [
         'Working through deep learning from first principles — backprop, optimisation, and the architectures that actually earn their complexity.',
-        'Pointing all of it at markets: signals, backtests, and the difference between a real edge and an overfit one.',
-        'Writing up one thing I learned, most days.',
+        'Reading a book on titled Crime and Punishment by Dostoevsky, just trying philosophy and literature for a change.',
+        'Writing up a few things I learned, most days.',
       ],
     },
     {
-      heading: 'Previously',
+      heading: "Project I', most proud of",
       items: [
-        'Built [Depressed-Amogoi](https://github.com/muhammadanas0716/Depressed-Amogoi) in grade 7 — a Discord bot for my school server, and still the project I am fondest of.',
-        'Wrote a Dank Memer bot that mined coins around the clock and got me to top 10 richest in the world, then spent the winnings running MrBeast-style giveaways in 2020.',
+        "Built a dank-memer bot script that mined coins 24/7 and got me to top 10 richest in the world, then spent the winnings running MrBeast-style giveaways during Covid.'",
+        "Also one more thing I built for my brother was that he stutters, so I built an ML model that would predict his stuttered words and correct them in real-time, which he used for a while and it helped him a lot.'",
       ],
     },
   ],
