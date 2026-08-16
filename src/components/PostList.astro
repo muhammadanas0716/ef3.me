@@ -3,14 +3,49 @@ import { formatDate, isoDate } from '../lib/seo.js';
 
 const { posts = [], empty = 'Nothing here yet.' } = Astro.props;
 
-/** Group by year so a long journal stays scannable. */
+/**
+ * Posts arrive newest first. They get grouped by year, and inside a year any
+ * posts sharing a `series` collapse into one entry, anchored at the position
+ * of the newest part so the archive still reads chronologically.
+ */
 const groups = [];
 for (const post of posts) {
   const year = post.publishedAt ? new Date(post.publishedAt).getUTCFullYear() : 'Drafts';
-  const last = groups.at(-1);
-  if (last?.year === year) last.posts.push(post);
-  else groups.push({ year, posts: [post] });
+  let group = groups.at(-1);
+  if (group?.year !== year) {
+    group = { year, entries: [], seriesIndex: new Map() };
+    groups.push(group);
+  }
+
+  if (!post.series) {
+    group.entries.push({ type: 'post', post });
+    continue;
+  }
+
+  const existing = group.seriesIndex.get(post.series);
+  if (existing) {
+    existing.posts.push(post);
+  } else {
+    const entry = { type: 'series', name: post.series, posts: [post] };
+    group.seriesIndex.set(post.series, entry);
+    group.entries.push(entry);
+  }
 }
+
+// Read a series front to back, even though the archive around it runs backwards.
+for (const group of groups) {
+  for (const entry of group.entries) {
+    if (entry.type === 'series') {
+      entry.posts.sort((a, b) => (a.publishedAt ?? 0) - (b.publishedAt ?? 0));
+    }
+  }
+}
+
+const span = (entry) => {
+  const first = formatDate(entry.posts[0].publishedAt, { style: 'short' });
+  const last = formatDate(entry.posts.at(-1).publishedAt, { style: 'short' });
+  return first === last ? first : `${first} to ${last}`;
+};
 ---
 
 {posts.length === 0 ? (
@@ -19,24 +54,64 @@ for (const post of posts) {
   groups.map((group) => (
     <section class="year-group">
       <h2 class="mono dim year">{group.year}</h2>
+
       <ul class="posts">
-        {group.posts.map((post) => (
-          <li>
-            <a class="title" href={`/blog/${post.slug}`}>{post.title}</a>
-            <p class="excerpt">{post.excerpt}</p>
-            <p class="mono dim meta">
-              <time datetime={isoDate(post.publishedAt)}>{formatDate(post.publishedAt, { style: 'short' })}</time>
-              <span aria-hidden="true"> · </span>
-              <span>{post.readingMinutes} min</span>
-              {post.tags.length > 0 && (
-                <>
-                  <span aria-hidden="true"> · </span>
-                  <span>{post.tags.join(', ')}</span>
-                </>
-              )}
-            </p>
-          </li>
-        ))}
+        {group.entries.map((entry) =>
+          entry.type === 'post' ? (
+            <li>
+              <a class="title" href={`/blog/${entry.post.slug}`}>{entry.post.title}</a>
+              <p class="excerpt">{entry.post.excerpt}</p>
+              <p class="mono dim meta">
+                <time datetime={isoDate(entry.post.publishedAt)}>
+                  {formatDate(entry.post.publishedAt, { style: 'short' })}
+                </time>
+                <span aria-hidden="true"> · </span>
+                <span>{entry.post.readingMinutes} min</span>
+                {entry.post.tags.length > 0 && (
+                  <>
+                    <span aria-hidden="true"> · </span>
+                    <span>{entry.post.tags.join(', ')}</span>
+                  </>
+                )}
+              </p>
+            </li>
+          ) : (
+            <li>
+              {/*
+                A native <details> gives open/close, keyboard support and the
+                right ARIA for free, and it still works with JavaScript off.
+              */}
+              <details class="series" open>
+                <summary>
+                  <span class="series-mark mono" aria-hidden="true">series</span>
+                  <span class="series-name">{entry.name}</span>
+                  <span class="mono dim series-meta">
+                    {entry.posts.length} parts · {span(entry)}
+                  </span>
+                </summary>
+
+                <ol class="series-parts">
+                  {entry.posts.map((post, index) => (
+                    <li>
+                      <span class="mono dim part-number" aria-hidden="true">{index + 1}</span>
+                      <div class="part-body">
+                        <a class="title" href={`/blog/${post.slug}`}>{post.title}</a>
+                        <p class="excerpt">{post.excerpt}</p>
+                        <p class="mono dim meta">
+                          <time datetime={isoDate(post.publishedAt)}>
+                            {formatDate(post.publishedAt, { style: 'short' })}
+                          </time>
+                          <span aria-hidden="true"> · </span>
+                          <span>{post.readingMinutes} min</span>
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </li>
+          ),
+        )}
       </ul>
     </section>
   ))
@@ -78,5 +153,107 @@ for (const post of posts) {
 
   .meta {
     margin-top: 0.4rem;
+  }
+
+  /* -------------------------------------------------------------- series */
+
+  .series {
+    border-left: 2px solid var(--color-accent);
+    padding-left: 1rem;
+  }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 0.6rem;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .series-mark {
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent-deep);
+  }
+
+  .series-name {
+    font-weight: 650;
+    letter-spacing: -0.012em;
+  }
+
+  .series-meta {
+    font-size: 0.75rem;
+  }
+
+  /* The caret, drawn rather than imported. */
+  .series-name::after {
+    content: '';
+    display: inline-block;
+    width: 0.42em;
+    height: 0.42em;
+    margin-left: 0.5em;
+    border-right: 1.5px solid var(--color-accent);
+    border-bottom: 1.5px solid var(--color-accent);
+    rotate: 45deg;
+    translate: 0 -0.15em;
+    transition: rotate 180ms ease;
+  }
+
+  .series:not([open]) .series-name::after {
+    rotate: -45deg;
+  }
+
+  summary:hover .series-name {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 3px;
+  }
+
+  .series-parts {
+    list-style: none;
+    padding: 0;
+    margin: 1.25rem 0 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .series-parts > li {
+    display: grid;
+    grid-template-columns: 1.25rem 1fr;
+    gap: 0.5rem;
+  }
+
+  .part-number {
+    font-size: 0.75rem;
+    padding-top: 0.15rem;
+  }
+
+  /* Slides open where the browser supports animating details content, and
+     simply snaps open where it doesn't. */
+  @supports selector(::details-content) {
+    .series::details-content {
+      block-size: 0;
+      overflow: hidden;
+      transition:
+        block-size 260ms cubic-bezier(0.22, 1, 0.36, 1),
+        content-visibility 260ms allow-discrete;
+      transition-behavior: allow-discrete;
+    }
+
+    .series[open]::details-content {
+      block-size: auto;
+ivit  }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .series-name::after {
+      transition: none;
+    }
   }
 </style>
