@@ -29,6 +29,14 @@ const [{ html, toc }, neighbours, allPosts] = await Promise.all([
 // strongest signal a small site can send about which pages relate to which.
 const related = relatedPosts(post, allPosts);
 
+// Where this post sits in its series, if it belongs to one.
+const seriesParts = post.series
+  ? allPosts
+      .filter((p) => p.series === post.series)
+      .sort((a, b) => (a.publishedAt ?? 0) - (b.publishedAt ?? 0))
+  : [];
+const partNumber = seriesParts.findIndex((p) => p.slug === post.slug) + 1;
+
 const description = post.excerpt || makeExcerpt(post.content);
 const updated = post.updatedAt && post.publishedAt && post.updatedAt - post.publishedAt > 86_400_000;
 
@@ -58,6 +66,12 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
   <article>
     <header class="post-header">
       <p class="mono dim breadcrumb"><a href="/blog">{site.blogTitle}</a> /</p>
+      {post.series && seriesParts.length > 1 && (
+        <p class="mono series-badge">
+          <span class="series-label">{post.series}</span>
+          <span class="dim"> · part {partNumber} of {seriesParts.length}</span>
+        </p>
+      )}
       <h1>{post.title}</h1>
       <p class="mono dim meta">
         <time datetime={isoDate(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
@@ -98,6 +112,24 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
       </p>
     )}
   </article>
+
+  {seriesParts.length > 1 && (
+    <aside class="series-nav" aria-label={`All parts of ${post.series}`}>
+      <h2 class="mono dim series-nav-title">{post.series}</h2>
+      <ol class="series-nav-list">
+        {seriesParts.map((part, index) => (
+          <li aria-current={part.slug === post.slug ? 'page' : undefined}>
+            <span class="mono dim">{index + 1}</span>
+            {part.slug === post.slug ? (
+              <span class="current">{part.title}</span>
+            ) : (
+              <a href={`/blog/${part.slug}`}>{part.title}</a>
+            )}
+          </li>
+        ))}
+      </ol>
+    </aside>
+  )}
 
   {related.length > 0 && (
     <aside class="related" aria-label="Related posts">
@@ -182,6 +214,49 @@ Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=60, sta
     display: flex;
     flex-wrap: wrap;
     gap: 0.9rem;
+  }
+
+  .series-badge {
+    margin-bottom: 0.6rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+  }
+
+  .series-label {
+    text-transform: uppercase;
+    color: var(--color-accent-deep);
+  }
+
+  .series-nav {
+    margin-top: 3rem;
+    padding: 1.25rem 0 1.25rem 1rem;
+    border-left: 2px solid var(--color-accent);
+    font-size: 0.9375rem;
+  }
+
+  .series-nav-title {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .series-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .series-nav-list > li {
+    display: grid;
+    grid-template-columns: 1.25rem 1fr;
+    gap: 0.5rem;
+  }
+
+  .series-nav-list .current {
+    font-weight: 600;
   }
 
   .related {

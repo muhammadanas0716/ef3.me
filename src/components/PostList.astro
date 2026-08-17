@@ -32,13 +32,17 @@ for (const post of posts) {
   }
 }
 
-// Read a series front to back, even though the archive around it runs backwards.
 for (const group of groups) {
-  for (const entry of group.entries) {
-    if (entry.type === 'series') {
-      entry.posts.sort((a, b) => (a.publishedAt ?? 0) - (b.publishedAt ?? 0));
-    }
-  }
+  group.entries = group.entries.map((entry) => {
+    if (entry.type !== 'series') return entry;
+    // A series of one is just a post. Collapsing it would be a box the
+    // reader has to open to find a single thing inside.
+    if (entry.posts.length === 1) return { type: 'post', post: entry.posts[0] };
+    // Read a series front to back, even though the archive around it runs
+    // backwards.
+    entry.posts.sort((a, b) => (a.publishedAt ?? 0) - (b.publishedAt ?? 0));
+    return entry;
+  });
 }
 
 const span = (entry) => {
@@ -248,7 +252,7 @@ const span = (entry) => {
 
     .series[open]::details-content {
       block-size: auto;
-ivit  }
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
