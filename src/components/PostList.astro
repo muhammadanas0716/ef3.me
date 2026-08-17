@@ -85,7 +85,7 @@ const span = (entry) => {
                 A native <details> gives open/close, keyboard support and the
                 right ARIA for free, and it still works with JavaScript off.
               */}
-              <details class="series" open>
+              <details class="series">
                 <summary>
                   <span class="series-mark mono" aria-hidden="true">series</span>
                   <span class="series-name">{entry.name}</span>
@@ -204,13 +204,14 @@ const span = (entry) => {
     margin-left: 0.5em;
     border-right: 1.5px solid var(--color-accent);
     border-bottom: 1.5px solid var(--color-accent);
-    rotate: 45deg;
+    rotate: -45deg;
     translate: 0 -0.15em;
     transition: rotate 180ms ease;
   }
 
-  .series:not([open]) .series-name::after {
-    rotate: -45deg;
+  .series[open] .series-name::after {
+    rotate: 45deg;
+    translate: 0 -0.2em;
   }
 
   summary:hover .series-name {
@@ -238,16 +239,21 @@ const span = (entry) => {
     padding-top: 0.15rem;
   }
 
-  /* Slides open where the browser supports animating details content, and
-     simply snaps open where it doesn't. */
-  @supports selector(::details-content) {
+  /* Slides open where the browser can animate a height to `auto`, and simply
+     snaps open where it can't. Both halves of that support test matter: with
+     `::details-content` alone the parts get clipped to a zero height that
+     never resolves, so an open series looks empty. */
+  @supports selector(::details-content) and (interpolate-size: allow-keywords) {
+    .series {
+      interpolate-size: allow-keywords;
+    }
+
     .series::details-content {
       block-size: 0;
       overflow: hidden;
       transition:
         block-size 260ms cubic-bezier(0.22, 1, 0.36, 1),
         content-visibility 260ms allow-discrete;
-      transition-behavior: allow-discrete;
     }
 
     .series[open]::details-content {

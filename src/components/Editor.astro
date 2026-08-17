@@ -1076,7 +1076,13 @@ const tools = [
     box-shadow: 0 1px 0 var(--color-accent);
   }
 
-  button.ghost {
+  /* Every control in the chrome is the same monospaced chip, whether it is a
+     button or the one link among them. Only the fill changes between ghost,
+     solid, publish and tool, so they all share the box and the fade. */
+  .ghost,
+  .solid,
+  .publish,
+  .tool {
     font-family: var(--font-mono);
     font-size: 0.75rem;
     cursor: pointer;
@@ -1088,6 +1094,10 @@ const tools = [
     text-decoration: none;
     line-height: 1.4;
     white-space: nowrap;
+    transition:
+      background 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
   }
 
   .ghost:hover {
